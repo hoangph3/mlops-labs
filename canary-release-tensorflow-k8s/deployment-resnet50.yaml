@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-classifier-resnet50
+  namespace: tf-serving
+  labels:
+    app: image-classifier
+    version: resnet50
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-classifier
+      version: resnet50
+  template:
+    metadata:
+      labels:
+        app: image-classifier
+        version: resnet50
+    spec:
+      containers:
+      - name: tf-serving
+        image: "tensorflow/serving:2.5.1"
+        args: 
+        - "--model_name=$(MODEL_NAME)"
+        - "--model_base_path=$(MODEL_PATH)" 
+        envFrom:
+        - configMapRef:
+            name: resnet50-configs
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8501
+          protocol: TCP
+        - name: grpc
+          containerPort: 8500
+          protocol: TCP
+        volumeMounts:
+        - name: model
+          mountPath: /models/resnet50
+      volumes:
+      - name: model
+        hostPath: 
+          path: /home/hoang/Downloads/resnet50

@@ -38,6 +38,8 @@ spec:
                 mountPath: /models/saved_model_dir
               - name: checkpoints
                 mountPath: /models/checkpoints
+              - name: data-dir
+                mountPath: /data/mnist
           volumes:
           - name: saved-model-dir
             hostPath: 
@@ -45,3 +47,6 @@ spec:
           - name: checkpoints
             hostPath: 
               path: /home/hoang/Downloads/mnist/checkpoints
+          - name: data-dir
+            hostPath:
+              path: /home/hoang/Downloads/mnist/data

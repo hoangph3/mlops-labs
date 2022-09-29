@@ -104,7 +104,7 @@ metadata:
   labels:
     app: image-classifier
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
   - port: 8500
     protocol: TCP
@@ -120,8 +120,14 @@ $ kubectl apply -f service.yaml
 service/image-classifier created
 
 $ kubectl get svc -n tf-serving 
-NAME               TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)                         AGE
-image-classifier   NodePort   10.108.65.64   <none>        8500:31048/TCP,8501:30904/TCP   24s
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                         AGE
+image-classifier   LoadBalancer   10.107.1.109   <pending>     8500:32278/TCP,8501:30025/TCP   10s
+
+$ minikube tunnel
+
+$ kubectl get svc -n tf-serving
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)                         AGE
+image-classifier   LoadBalancer   10.107.1.109   10.107.1.109   8500:32278/TCP,8501:30025/TCP   111s
 ```
 
 The final step is to add Horizontal Pod Autoscaler (HPA). The command below configures HPA to start a new replica of TensorFlow Serving whenever the mean CPU utilization across all already running replicas reaches `60%`. HPA will attempt to create up to 4 replicas and scale down to 1 replica.
@@ -140,6 +146,31 @@ image-classifier-resnet101   Deployment/image-classifier-resnet101   <unknown>/6
 
 Testing the model with sample request body `locust/request-body.json`:
 ```sh
-NODEPORT_IP=$(minikube ip)
-curl -d @locust/request-body.json -X POST http://${NODEPORT_IP}:30904/v1/models/image_classifier/versions/1:predict
+$ EXTERNAL_IP=10.107.1.109
+$ curl -d @locust/request-body.json -X POST http://${EXTERNAL_IP}:8501/v1/models/image_classifier/versions/1:predict
+{
+    "predictions": [[
+      ...
+      ]
+    ]
+}
+```
+
+We are now ready to load test the ResNet101, we will use an open source load testing tool Locust to generate prediction requests.
+
+Install locust:
+```sh
+$ pip3 install locust
+$ locust -V
+locust 1.4.1
+$ locust
+Could not find any locustfile! Ensure file ends in '.py' and see --help for available options.
+```
+
+The locust folder contains the Locust script that generates prediction requests against the ResNet101 model. The script uses the same request body you used previously to verify the TensorFlow Serving deployment. The script is configured to progressively increase the number of simulated users that send prediction requests to the ResNet101 model. After reaching the maximum number of configured users, the script stops generating the load. The number of users is adjusted every 60s.
+
+To start the test, execute the command:
+```sh
+$ cd locust
+$ locust -f tasks.py --host http://${EXTERNAL_IP}:8501
 ```

@@ -137,3 +137,9 @@ $ kubectl get hpa -n tf-serving
 NAME                         REFERENCE                               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
 image-classifier-resnet101   Deployment/image-classifier-resnet101   <unknown>/60%   1         4         1          48s
 ```
+
+Testing the model with sample request body `locust/request-body.json`:
+```sh
+NODEPORT_IP=$(minikube ip)
+curl -d @locust/request-body.json -X POST http://${NODEPORT_IP}:30904/v1/models/image_classifier/versions/1:predict
+```

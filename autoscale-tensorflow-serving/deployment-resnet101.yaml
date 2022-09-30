@@ -43,8 +43,8 @@ spec:
           protocol: TCP
         resources:
           requests:
-            cpu: "2"
-            memory: 4Gi
+            cpu: "0.5"
+            memory: 1Gi
         volumeMounts:
         - name: model
           mountPath: /models/resnet101

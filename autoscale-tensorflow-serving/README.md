@@ -73,8 +73,8 @@ spec:
           protocol: TCP
         resources:
           requests:
-            cpu: "2"
-            memory: 4Gi
+            cpu: "0.5"
+            memory: 1Gi
         volumeMounts:
         - name: model
           mountPath: /models/resnet101
@@ -87,12 +87,10 @@ spec:
 $ kubectl apply -f deployment-resnet101.yaml
 deployment.apps/image-classifier-resnet101 created
 
-$ kubectl get deployments.apps -n tf-serving 
+$ kubectl get deployments.apps -n tf-serving
 NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
 image-classifier-resnet101   1/1     1            1           6m27s
 ```
-
-At start, each replica requests 2CPUs and 4GB of RAM. Because my cluster is configured with 3CPUs and 10GB or RAM. It means that only a single replica can run on a node.
 
 Exposing the deployment to service:
 ```yaml
@@ -120,14 +118,14 @@ $ kubectl apply -f service.yaml
 service/image-classifier created
 
 $ kubectl get svc -n tf-serving 
-NAME               TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                         AGE
-image-classifier   LoadBalancer   10.107.1.109   <pending>     8500:32278/TCP,8501:30025/TCP   10s
+NAME               TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                         AGE
+image-classifier   LoadBalancer   10.101.25.178   <pending>     8500:31261/TCP,8501:31055/TCP   18s
 
 $ minikube tunnel
 
 $ kubectl get svc -n tf-serving
-NAME               TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)                         AGE
-image-classifier   LoadBalancer   10.107.1.109   10.107.1.109   8500:32278/TCP,8501:30025/TCP   111s
+NAME               TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                         AGE
+image-classifier   LoadBalancer   10.101.25.178   10.101.25.178   8500:31261/TCP,8501:31055/TCP   43s
 ```
 
 The final step is to add Horizontal Pod Autoscaler (HPA). The command below configures HPA to start a new replica of TensorFlow Serving whenever the mean CPU utilization across all already running replicas reaches `60%`. HPA will attempt to create up to 4 replicas and scale down to 1 replica.
@@ -141,12 +139,63 @@ horizontalpodautoscaler.autoscaling/image-classifier-resnet101 autoscaled
 
 $ kubectl get hpa -n tf-serving 
 NAME                         REFERENCE                               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
-image-classifier-resnet101   Deployment/image-classifier-resnet101   <unknown>/60%   1         4         1          48s
+image-classifier-resnet101   Deployment/image-classifier-resnet101   <unknown>/60%   1         4         1          25s
+```
+
+We get `<unknown>/60%` value in the `TARGETS`. Is there anything wrong? Let's describe the `horizontalpodautoscaler.autoscaling`.
+
+```sh
+$ kubectl describe horizontalpodautoscalers.autoscaling -n tf-serving image-classifier-resnet101
+...
+Events:
+  Type     Reason                        Age   From                       Message
+  ----     ------                        ----  ----                       -------
+  Warning  FailedGetResourceMetric       13s   horizontal-pod-autoscaler  failed to get cpu utilization: missing request for cpu
+  Warning  FailedComputeMetricsReplicas  13s   horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu utilization: missing request for cpu
+
+$ kubectl top nodes
+error: Metrics API not available
+```
+
+We must install the `metrics-server`, note that we need to add `--kubelet-insecure-tls` under `spec.template.spec.containers.args` to disable certificate validation.
+```sh
+$ kubectl apply -f metrics-server.yaml 
+serviceaccount/metrics-server created
+clusterrole.rbac.authorization.k8s.io/system:aggregated-metrics-reader created
+clusterrole.rbac.authorization.k8s.io/system:metrics-server created
+rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader created
+clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator created
+clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server created
+service/metrics-server created
+deployment.apps/metrics-server created
+apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io created
+
+$ kubectl get pods -n kube-system metrics-server-df6668697-nvg6c
+NAME                             READY   STATUS    RESTARTS   AGE
+metrics-server-df6668697-nvg6c   1/1     Running   0          20m
+
+$ kubectl top nodes
+NAME           CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+jump-windows   1143m        28%    6777Mi          68%
+```
+
+Now re-create the hpa and describe it:
+```sh
+$ kubectl get hpa -n tf-serving
+NAME                         REFERENCE                               TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+image-classifier-resnet101   Deployment/image-classifier-resnet101   0%/60%    1         4         1          17m
+
+$ kubectl describe hpa -n tf-serving image-classifier-resnet101
+...
+Events:
+  Type    Reason             Age   From                       Message
+  ----    ------             ----  ----                       -------
+  Normal  SuccessfulRescale  10m   horizontal-pod-autoscaler  New size: 1; reason: All metrics below target
 ```
 
 Testing the model with sample request body `locust/request-body.json`:
 ```sh
-$ EXTERNAL_IP=10.107.1.109
+$ EXTERNAL_IP=10.101.25.178
 $ curl -d @locust/request-body.json -X POST http://${EXTERNAL_IP}:8501/v1/models/image_classifier/versions/1:predict
 {
     "predictions": [[
@@ -173,4 +222,42 @@ To start the test, execute the command:
 ```sh
 $ cd locust
 $ locust -f tasks.py --host http://${EXTERNAL_IP}:8501
+...
+[2022-09-30 21:07:01,259] jump-windows/INFO/locust.main: Starting web interface at http://0.0.0.0:8089 (accepting connections from all network interfaces)
+[2022-09-30 21:07:01,266] jump-windows/INFO/locust.main: Starting Locust 1.4.1
 ```
+
+Open your favorite browser, and access to the address: http://0.0.0.0:8089, then Start swarming.
+
+Within a minute or so, you should see the higher CPU load; for example:
+```sh
+$ kubectl get hpa -n tf-serving image-classifier-resnet101 -w
+NAME                         REFERENCE                               TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+image-classifier-resnet101   Deployment/image-classifier-resnet101   426%/60%   1         4         1          24m
+image-classifier-resnet101   Deployment/image-classifier-resnet101   215%/60%   1         4         4          24m
+```
+
+Here, CPU consumption has increased to 215% of the request. As a result, the Deployment was resized to 4 replicas:
+```sh
+$ kubectl get deployment -n tf-serving image-classifier-resnet101 
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+image-classifier-resnet101   4/4     4            4           29m
+```
+
+Stop sending the load by typing `<Ctrl> + C` in the locust terminal screen.
+
+Then verify the result state (after a minute or so):
+```sh
+$ kubectl get hpa -n tf-serving image-classifier-resnet101 -w
+NAME                         REFERENCE                               TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+image-classifier-resnet101   Deployment/image-classifier-resnet101   0%/60%     1         4         4          27m
+image-classifier-resnet101   Deployment/image-classifier-resnet101   0%/60%     1         4         1          32m
+```
+
+and the Deployment also shows that it has scaled down:
+```sh
+$ kubectl get deploy -n tf-serving image-classifier-resnet101 
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+image-classifier-resnet101   1/1     1            1           36m
+```
+Once CPU utilization dropped to 0, the HPA automatically scaled the number of replicas back down to 1. Autoscaling the replicas may take a few minutes.

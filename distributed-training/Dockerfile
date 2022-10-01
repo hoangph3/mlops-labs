@@ -14,7 +14,7 @@
 # ==============================================================================
 
 FROM tensorflow/tensorflow:2.4.1
-RUN pip install tensorflow_datasets idx2numpy --proxy=192.168.5.8:3128
+RUN pip install tensorflow_datasets idx2numpy
 
 ADD mnist mnist
 

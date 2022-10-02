@@ -292,7 +292,58 @@ $ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/re
 
 ### 6. Advanced model server configuration
 
-To enable model warmup, you will use user-provided PredictionLogs in `assets.extra/` directory. Fisrtly, generating the PredictionLogs and save into a file:
-```python
+#### 6.1. SavedModel Warmup
 
+As soon as you have just deployed the model without a warm up, you can see the response time look like that:
+```sh
+$ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/resnet/versions/50:predict -o /dev/null -s -w 'Total: %{time_total}s\n'
+Total: 1,423064s
 ```
+
+To enable model warmup, you will use user-provided PredictionLogs in `assets.extra/` directory. Fisrtly, generating the PredictionLogs from module `utils/warmup_serving.py` and save into a file:
+```sh
+$ python3 utils/warmup_serving.py
+...
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+$ tree /home/hoang/Downloads/resnet_serving
+/home/hoang/Downloads/resnet_serving
+├── 101
+│   ├── assets
+│   ├── assets.extra
+│   │   └── tf_serving_warmup_requests
+│   ├── saved_model.pb
+│   └── variables
+│       ├── variables.data-00000-of-00001
+│       └── variables.index
+└── 50
+    ├── assets
+    ├── assets.extra
+    │   └── tf_serving_warmup_requests
+    ├── saved_model.pb
+    └── variables
+        ├── variables.data-00000-of-00001
+        └── variables.index
+8 directories, 8 files
+```
+
+Now we will test the model serving with a warm up
+```sh
+# Re-create the container
+$ docker-compose up -d
+[+] Running 2/2
+ ⠿ Network tensorflow-serving-configuration_default  Created            0.1s
+ ⠿ Container tf_serving                              Started            0.8s
+
+# Trace logs
+$ docker logs -f tf_serving
+...
+2022-10-02 06:53:31.495273: I tensorflow_serving/servables/tensorflow/saved_model_warmup_util.cc:122] Finished reading warmup data for model at /models/resnet/50/assets.extra/tf_serving_warmup_requests. Number of warmup records read: 200. Elapsed time (microseconds): 45988765.
+
+# Exec curl
+curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/resnet/versions/50:predict -o /dev/null -s -w 'Total: %{time_total}s\n'
+Total: 0,129297s
+```
+
+It is easy to see that a Warmup helps the model to start up faster.
+

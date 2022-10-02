@@ -4,6 +4,7 @@ import os
 
 
 from .custom_serving import ServingModule
+from .warmup_serving import warmup_serving
 
 
 def get_image_list(image_dir="images"):

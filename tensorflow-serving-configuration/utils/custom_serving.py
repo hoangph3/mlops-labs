@@ -59,8 +59,8 @@ class ServingModule(tf.Module):
         indices = tf.argsort(probabilities, axis=1, direction='DESCENDING')
         
         return {
-            LABELS_KEY: tf.gather(self._output_labels, indices, axis=-1)[:,:],
-            PROBABILITIES_KEY: tf.sort(probabilities, direction='DESCENDING')[:,:]
+            LABELS_KEY: tf.gather(self._output_labels, indices, axis=-1)[:,:NUM_LABELS],
+            PROBABILITIES_KEY: tf.sort(probabilities, direction='DESCENDING')[:,:NUM_LABELS]
         }
         
 

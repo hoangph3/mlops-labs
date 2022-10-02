@@ -7,51 +7,33 @@ In this lab, we will:
 3. Exporting the model as a `SavedModel`
 4. Deploying the `SavedModel` to AI Platform Prediction
 5. Validating the deployed model
+6. Advanced model server configuration
 
 We will export two trained Resnet model, consist of Resnet50 and Resnet101, then serve these.
 
-### 1. Download pretrained model by python code:
-```python
->>> import tensorflow as tf
-
->>> print(tf.__version__)
-2.6.2
-
->>> model = tf.keras.applications.resnet50.ResNet50()
-Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/resnet/resnet50_weights_tf_dim_ordering_tf_kernels.h5
-102973440/102967424 [==============================] - 32s 0us/step
-
->>> model.save('/home/hoang/Downloads/resnet/50') # 50 is version
-INFO:tensorflow:Assets written to: /home/hoang/Downloads/resnet/50/assets
-
->>> model = tf.keras.applications.resnet.ResNet101()
-Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/resnet/resnet101_weights_tf_dim_ordering_tf_kernels.h5
-179650560/179648224 [==============================] - 26s 0us/step
-
->>> model.save('/home/hoang/Downloads/resnet/101') # 101 is version
-INFO:tensorflow:Assets written to: /home/hoang/Downloads/resnet/101/assets
+### 1. Download pretrained model from TFHub:
+```sh
+$ wget https://storage.googleapis.com/tfhub-modules/google/imagenet/resnet_v2_50/classification/5.tar.gz
+$ wget https://storage.googleapis.com/tfhub-modules/google/imagenet/resnet_v2_101/classification/5.tar.gz
 ```
-
-Verify the directory have saved model:
+Then extract into a folder, similarity following to:
 ```sh
 $ tree /home/hoang/Downloads/resnet
-/home/hoang/Downloads/resnet/
+/home/hoang/Downloads/resnet
 ├── 101
-│   ├── assets
-│   ├── keras_metadata.pb
-│   ├── saved_model.pb
-│   └── variables
-│       ├── variables.data-00000-of-00001
-│       └── variables.index
+│   ├── saved_model.pb
+│   └── variables
+│       ├── variables.data-00000-of-00001
+│       └── variables.index
 └── 50
-    ├── assets
-    ├── keras_metadata.pb
     ├── saved_model.pb
     └── variables
         ├── variables.data-00000-of-00001
         └── variables.index
-6 directories, 8 files
+4 directories, 6 files
 ```
+
+Note that the directory `50`, same as `101` is the version of the model.
 
 The expected input to most TF2.x image classification models, is a rank `4` tensor conforming to the following tensor specification: `tf.TensorSpec([None, height, width, 3], tf.float32)`.
 More concretely, the expected image size is height x width = `224 x 224`. The color values for all channels are expected to be normalized to the [0, 1] range.
@@ -84,11 +66,11 @@ Run inference:
 >>> model = tf.keras.models.load_model('/home/hoang/Downloads/resnet/101')
 >>> predictions = model(preprocessed_images)
 >>> predictions
-tf.Tensor(
-[[1.47234459e-04 2.66434450e-04 4.65371741e-05 ... 1.19409679e-05
-  1.21960125e-04 6.29067828e-04]
- [1.12211841e-04 2.68791919e-04 7.37712617e-05 ... 1.11050695e-05
-  1.50396168e-04 1.09615386e-03]], shape=(2, 1000), dtype=float32)
+<tf.Tensor: shape=(2, 1001), dtype=float32, numpy=
+array([[ 0.27374715, -1.2126322 , -0.85858756, ..., -1.8846453 ,
+         0.25237346,  1.8259864 ],
+       [ 0.28163522,  0.61459076, -0.00311601, ..., -0.5948272 ,
+        -0.05215326, -0.11519516]], dtype=float32)>
 ```
 
 The model returns a batch of arrays with logits. This is not a very user friendly output so we will convert it to the list of ImageNet class labels.
@@ -118,4 +100,199 @@ Test the custom serving module:
 >>> serving_module = utils.ServingModule(model, size, imagenet_labels)
 >>> predictions = serving_module.predict_labels(raw_images)
 >>> predictions
+{'labels': <tf.Tensor: shape=(2, 5), dtype=string, numpy=
+array([[b'Egyptian cat', b'tiger cat', b'tabby', b'lynx', b'Siamese cat'],
+       [b'military uniform', b'suit', b'Windsor tie', b'pickelhaube',
+        b'bow tie']], dtype=object)>, 'probabilities': <tf.Tensor: shape=(2, 5), dtype=float32, numpy=
+array([[8.2705331e-01, 1.3128258e-01, 4.1055005e-02, 5.7081261e-04,
+        1.8924713e-05],
+       [9.4001341e-01, 4.8532788e-02, 6.4066364e-03, 2.0129983e-03,
+        6.0433790e-04]], dtype=float32)>}
+```
+
+In this case, my custom serving module only get top-5 labels that have highest probabilities.
+
+### 3. Save the custom serving module as `SavedModel`
+```python
+>>> model_path = "/home/hoang/Downloads/resnet_serving/101"
+>>> default_signature = serving_module.__call__.get_concrete_function()
+>>> preprocess_signature = serving_module.predict_labels.get_concrete_function()
+>>> signatures = {'serving_default': default_signature,
+                  'serving_preprocess': preprocess_signature}
+>>> tf.saved_model.save(serving_module, model_path, signatures=signatures)
+INFO:tensorflow:Assets written to: /home/hoang/Downloads/resnet_serving/101/assets
+```
+
+Verify the Resnet model serving:
+```sh
+$ saved_model_cli show --dir "${model_path}" --tag_set serve --all
+...
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['x'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 224, 224, 3)
+        name: serving_default_x:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['output_0'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 1001)
+        name: StatefulPartitionedCall:0
+  Method name is: tensorflow/serving/predict
+
+signature_def['serving_preprocess']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['raw_images'] tensor_info:
+        dtype: DT_STRING
+        shape: (-1)
+        name: serving_preprocess_raw_images:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['labels'] tensor_info:
+        dtype: DT_STRING
+        shape: (-1, -1)
+        name: StatefulPartitionedCall_1:0
+    outputs['probabilities'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, -1)
+        name: StatefulPartitionedCall_1:1
+  Method name is: tensorflow/serving/predict
+
+Defined Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          x: TensorSpec(shape=(None, 224, 224, 3), dtype=tf.float32, name='x')
+
+  Function Name: 'predict_labels'
+    Option #1
+      Callable with:
+        Argument #1
+          raw_images: TensorSpec(shape=(None,), dtype=tf.string, name='raw_images')
+```
+
+Test loading and executing the `SavedModel`:
+```python
+>>> model = tf.keras.models.load_model(model_path)
+>>> model.predict_labels(raw_images)
+{'probabilities': <tf.Tensor: shape=(2, 5), dtype=float32, numpy=
+array([[8.2705331e-01, 1.3128258e-01, 4.1055005e-02, 5.7081261e-04,
+        1.8924713e-05],
+       [9.4001341e-01, 4.8532788e-02, 6.4066364e-03, 2.0129983e-03,
+        6.0433790e-04]], dtype=float32)>, 'labels': <tf.Tensor: shape=(2, 5), dtype=string, numpy=
+array([[b'Egyptian cat', b'tiger cat', b'tabby', b'lynx', b'Siamese cat'],
+       [b'military uniform', b'suit', b'Windsor tie', b'pickelhaube',
+        b'bow tie']], dtype=object)>}
+```
+
+We can absolutely do the same with the Resnet50 model. Finally we have the custom serving module for Resnet model with two version, `50` and `101`.
+
+```sh
+$ tree /home/hoang/Downloads/resnet_serving
+├── 101
+│   ├── assets
+│   ├── saved_model.pb
+│   └── variables
+│       ├── variables.data-00000-of-00001
+│       └── variables.index
+└── 50
+    ├── assets
+    ├── saved_model.pb
+    └── variables
+        ├── variables.data-00000-of-00001
+        └── variables.index
+6 directories, 6 files
+```
+
+### 4. Deploying the `SavedModel`
+
+Now we will serving multiple versions of the Resnet model, by write model config `models.config` file.
+```conf
+model_config_list: {
+  config: {
+    name: "resnet",
+    base_path: "/models/resnet"
+    model_platform: "tensorflow",
+    model_version_policy: {
+      all: {}
+    }
+  }
+}
+```
+
+Write the `docker-compose.yaml` file:
+```yaml
+version: '3.2'
+services:
+  tf-serving:
+    container_name: tf_serving
+    image: tensorflow/serving:2.5.1
+    ports:
+      - "8501:8501"
+      - "8500:8500"
+    volumes:
+      - "/home/hoang/Downloads/resnet_serving:/models/resnet"
+      - "./models.config:/models/models.config"
+    command:
+      - '--model_config_file=/models/models.config'
+      - '--model_config_file_poll_wait_seconds=60'
+```
+
+Deploying the model by `docker-compose` command:
+```sh
+$ docker-compose up -d
+[+] Running 2/2
+ ⠿ Network tensorflow-serving-configuration_default  Created            0.2s
+ ⠿ Container tf_serving                              Started            1.2s
+
+$ docker ps | grep tf_serving
+e1f6a5ed1276   tensorflow/serving:2.5.1   "/usr/bin/tf_serving…"   About a minute ago   Up About a minute   0.0.0.0:8500-8501->8500-8501/tcp, :::8500-8501->8500-8501/tcp   tf_serving
+
+$ docker logs -f tf_serving
+...
+2022-10-01 11:26:22.126759: I tensorflow_serving/servables/tensorflow/saved_model_warmup_util.cc:59] No warmup data file found at /models/resnet/50/assets.extra/tf_serving_warmup_requests
+2022-10-01 11:26:23.183213: I tensorflow_serving/model_servers/server.cc:393] Running gRPC ModelServer at 0.0.0.0:8500 ...
+[warn] getaddrinfo: address family for nodename not supported
+2022-10-01 11:26:23.185253: I tensorflow_serving/model_servers/server.cc:414] Exporting HTTP/REST API at:localhost:8501 ...
+[evhttp_server.cc : 245] NET_LOG: Entering the event loop ...
+```
+
+### 5. Validating the deployed model
+```sh
+$ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/resnet/versions/50:predict
+{
+    "predictions": [
+        {
+            "labels": ["military uniform", "pickelhaube", "suit", "Windsor tie", "bearskin"],
+            "probabilities": [0.453408211, 0.209194973, 0.193582058, 0.0409308933, 0.0137334978]
+        }
+    ]
+}
+$ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/resnet/versions/101:predict
+{
+    "predictions": [
+        {
+            "probabilities": [0.940013, 0.0485330448, 0.00640664576, 0.0020130109, 0.000604341098],
+            "labels": ["military uniform", "suit", "Windsor tie", "pickelhaube", "bow tie"]
+        }
+    ]
+}
+```
+
+### 6. Advanced model server configuration
+
+To enable model warmup, you will use user-provided PredictionLogs in `assets.extra/` directory. Fisrtly, generating the PredictionLogs and save into a file:
+```python
+
 ```

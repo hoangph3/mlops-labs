@@ -1,0 +1,14 @@
+version: '3.2'
+services:
+  tf-serving:
+    container_name: tf_serving
+    image: tensorflow/serving:2.5.1
+    ports:
+      - "8501:8501"
+      - "8500:8500"
+    volumes:
+      - "/home/hoang/Downloads/resnet_serving:/models/resnet"
+      - "./models.config:/models/models.config"
+    command:
+      - '--model_config_file=/models/models.config'
+      - '--model_config_file_poll_wait_seconds=60'

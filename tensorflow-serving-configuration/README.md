@@ -7,7 +7,7 @@ In this lab, we will:
 3. Exporting the model as a `SavedModel`
 4. Deploying the `SavedModel` to AI Platform Prediction
 5. Validating the deployed model
-6. Advanced model server configuration
+6. Advanced model server configuration: WarmUp, Batching, ...
 
 We will export two trained Resnet model, consist of Resnet50 and Resnet101, then serve these.
 
@@ -347,3 +347,95 @@ Total: 0,129297s
 
 It is easy to see that a Warmup helps the model to start up faster.
 
+#### 6.2. Monitoring Configuration
+
+TensorFlow Serving gives you the capability to connect to Prometheus to monitor metrics from your model server, by using the `--monitoring_config_file` flag to specify a `monitor.config` file containing a `MonitoringConfig` protocol buffer. It would look like that:
+
+```conf
+prometheus_config {
+  enable: true,
+  path: "/monitoring/prometheus/metrics"
+}
+```
+
+Next, configure Prometheus Server to listen to your model server by providing the following to its deployment manifest:
+```yaml
+version: '3.2'
+services:
+  tf-serving:
+    container_name: tf_serving
+    image: tensorflow/serving:2.5.1
+    ports:
+      - "8501:8501"
+      - "8500:8500"
+    volumes:
+      - "/home/hoang/Downloads/resnet_serving:/models/resnet"
+      - "./models.config:/models/models.config"
+      - "./monitor.config:/models/monitor.config"
+    command:
+      - '--model_config_file=/models/models.config'
+      - '--model_config_file_poll_wait_seconds=60'
+      - '--monitoring_config_file=/models/monitor.config'
+```
+
+Deploying your model server:
+```sh
+$ docker-compose up -d
+```
+
+You will also be able to check if the metrics are correctly exported at http://localhost:8501/monitoring/prometheus/metrics. It's look like that:
+```
+# TYPE :tensorflow:api:op:using_fake_quantization gauge
+# TYPE :tensorflow:cc:saved_model:load_attempt_count counter
+:tensorflow:cc:saved_model:load_attempt_count{model_path="/models/resnet/101",status="success"} 1
+:tensorflow:cc:saved_model:load_attempt_count{model_path="/models/resnet/50",status="success"} 1
+# TYPE :tensorflow:cc:saved_model:load_latency counter
+:tensorflow:cc:saved_model:load_latency{model_path="/models/resnet/101"} 3020490
+:tensorflow:cc:saved_model:load_latency{model_path="/models/resnet/50"} 1455731
+# TYPE :tensorflow:cc:saved_model:load_latency_by_stage histogram
+:tensorflow:serving:runtime_latency_bucket{model_name="resnet",API="Predict",runtime="TF1",le="10"} 0
+```
+
+#### 6.3. Batching
+
+TensorFlow Serving allows you to perform request batching by setting the `--enable_batching` and `--batching_parameters_file` flags, where the `batching.config` file may look like:
+```conf
+max_batch_size { value: 128 }
+batch_timeout_micros { value: 0 }
+max_enqueued_batches { value: 1000000 }
+num_batch_threads { value: 4 }
+```
+
+Next, configure batching online requests together for model server by providing the following to its deployment manifest:
+
+```yaml
+version: '3.2'
+services:
+  tf-serving:
+    container_name: tf_serving
+    image: tensorflow/serving:2.5.1
+    ports:
+      - "8501:8501"
+      - "8500:8500"
+    volumes:
+      - "/home/hoang/Downloads/resnet_serving:/models/resnet"
+      - "./models.config:/models/models.config"
+      - "./monitor.config:/models/monitor.config"
+      - "./batching.config:/models/batching.config"
+    command:
+      - '--model_config_file=/models/models.config'
+      - '--model_config_file_poll_wait_seconds=60'
+      - '--monitoring_config_file=/models/monitor.config'
+      - '--batching_parameters_file=/models/batching.config'
+      - '--enable_batching'
+```
+
+### (Optional) gRPC vs. REST
+
+In this section, we will benchmark the inference time between gRPC and REST by run the python script:
+```sh
+$ python3 utils/benchmark.py
+========== Test on 250 records ==========
+Predict gRPC in ...s
+Predict REST api in ...s
+```

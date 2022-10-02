@@ -9,6 +9,11 @@ services:
     volumes:
       - "/home/hoang/Downloads/resnet_serving:/models/resnet"
       - "./models.config:/models/models.config"
+      - "./monitor.config:/models/monitor.config"
+      - "./batching.config:/models/batching.config"
     command:
       - '--model_config_file=/models/models.config'
       - '--model_config_file_poll_wait_seconds=60'
+      - '--monitoring_config_file=/models/monitor.config'
+      # - '--batching_parameters_file=/models/batching.config'
+      # - '--enable_batching'

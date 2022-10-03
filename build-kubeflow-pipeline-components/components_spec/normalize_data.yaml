@@ -1,0 +1,38 @@
+name: preprocess-data
+description: preprocess-data
+
+inputs:
+  - name: Train CSV
+    type: LocalPath
+  - name: Test CSV
+    type: LocalPath
+
+outputs:
+  - name: Train Features
+    type: LocalPath
+  - name: Train Labels
+    type: LocalPath
+  - name: Test Features
+    type: LocalPath
+  - name: Test Labels
+    type: LocalPath
+
+implementation:
+  container:
+    image: hoangph3/kfp_preprocess_data:latest
+    command: [
+        python,
+        normalize.py,
+        --input_train_csv,
+        { inputPath: Train CSV },
+        --input_test_csv,
+        { inputPath: Test CSV },
+        --output_train_x,
+        { outputPath: Train Features },
+        --output_train_y,
+        { outputPath: Train Labels },
+        --output_test_x,
+        { outputPath: Test Features },
+        --output_test_y,
+        { outputPath: Test Labels }
+    ]

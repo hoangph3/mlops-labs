@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: kubeflow-pipeline-components-tutorial-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.5, pipelines.kubeflow.org/pipeline_compilation_time: '2022-10-04T22:18:38.460723',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.5, pipelines.kubeflow.org/pipeline_compilation_time: '2022-10-04T23:00:46.210235',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline to learn how
       to construct pipeline", "inputs": [{"name": "data_url", "type": "String"}, {"name":
       "test_size", "type": "Float"}, {"name": "batch_size", "type": "Integer"}, {"name":
@@ -43,7 +43,7 @@ spec:
       args: []
       command: [python, evaluate.py, --input_test_x, /tmp/inputs/Test_Features/data,
         --input_test_y, /tmp/inputs/Test_Labels/data, --input_model, /tmp/inputs/Model_Path/data,
-        --metrics_path, /tmp/outputs/Output_Metrics/data]
+        --metrics_path, /tmp/outputs/MLPipeline_Metrics/data]
       image: hoangph3/kfp_base_model:v0.0.1
     inputs:
       artifacts:
@@ -52,7 +52,7 @@ spec:
       - {name: preprocess-data-Test-Labels, path: /tmp/inputs/Test_Labels/data}
     outputs:
       artifacts:
-      - {name: eval-model-Output-Metrics, path: /tmp/outputs/Output_Metrics/data}
+      - {name: mlpipeline-metrics, path: /tmp/outputs/MLPipeline_Metrics/data}
     metadata:
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
@@ -62,11 +62,11 @@ spec:
           "implementation": {"container": {"command": ["python", "evaluate.py", "--input_test_x",
           {"inputPath": "Test Features"}, "--input_test_y", {"inputPath": "Test Labels"},
           "--input_model", {"inputPath": "Model Path"}, "--metrics_path", {"outputPath":
-          "Output Metrics"}], "image": "hoangph3/kfp_base_model:v0.0.1"}}, "inputs":
+          "MLPipeline Metrics"}], "image": "hoangph3/kfp_base_model:v0.0.1"}}, "inputs":
           [{"name": "Test Features", "type": "LocalPath"}, {"name": "Test Labels",
           "type": "LocalPath"}, {"name": "Model Path", "type": "LocalPath"}], "name":
-          "eval-model", "outputs": [{"name": "Output Metrics", "type": "Metrics"}]}',
-        pipelines.kubeflow.org/component_ref: '{"digest": "9bcb4c4a573bbb26f0a8141e6e129134a78a036ce8f53bd9a63308db683bc732",
+          "eval-model", "outputs": [{"name": "MLPipeline Metrics", "type": "Metrics"}]}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "a1b46e30a3b67cf2df49487197f29acc030f9033d062621ed7d6d69a8200f3e4",
           "url": "components_spec/eval_model.yaml"}'}
   - name: kubeflow-pipeline-components-tutorial
     inputs:

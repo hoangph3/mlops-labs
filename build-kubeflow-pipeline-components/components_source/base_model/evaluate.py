@@ -25,27 +25,28 @@ def main(args):
         'metrics': [
             {
                 'name': 'loss',
-                'numberValue': float(loss),
+                'numberValue': float(loss)
             },
             {
                 'name': 'Y1_loss',
-                'numberValue': float(Y1_loss),
+                'numberValue': float(Y1_loss)
             },
             {
                 'name': 'Y2_loss',
-                'numberValue': float(Y2_loss),
+                'numberValue': float(Y2_loss)
             },
             {
                 'name': 'Y1_rmse',
-                'numberValue': float(Y1_rmse),
+                'numberValue': float(Y1_rmse)
             },
             {
                 'name': 'Y2_rmse',
-                'numberValue': float(Y2_rmse),
-            },
+                'numberValue': float(Y2_rmse)
+            }
         ]
     }
-    Path(args.metrics_path).write_text(json.dumps(metrics))
+    with open(args.metrics_path, 'w') as f:
+        json.dump(metrics, f)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ inputs:
     type: LocalPath
 
 outputs:
-  - name: Output Metrics
+  - name: MLPipeline Metrics
     type: Metrics
 
 implementation:
@@ -26,5 +26,5 @@ implementation:
         --input_model,
         { inputPath: Model Path },
         --metrics_path,
-        { outputPath: Output Metrics }
+        { outputPath: MLPipeline Metrics }
     ]

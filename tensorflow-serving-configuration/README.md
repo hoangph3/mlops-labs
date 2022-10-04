@@ -219,13 +219,25 @@ $ tree /home/hoang/Downloads/resnet_serving
 
 Now we will serving multiple versions of the Resnet model, by write model config `models.config` file.
 ```conf
-model_config_list: {
-  config: {
-    name: "resnet",
-    base_path: "/models/resnet"
-    model_platform: "tensorflow",
-    model_version_policy: {
-      all: {}
+model_config_list {
+  config {
+    name: 'resnet'
+    base_path: '/models/resnet/'
+    model_platform: 'tensorflow'
+
+    model_version_policy {
+        specific {
+            versions: 50
+            versions: 101
+          }
+        }
+    version_labels {
+        key: 'stable'
+        value: 50
+    }
+    version_labels {
+        key: 'canary'
+        value: 101
     }
   }
 }
@@ -247,7 +259,10 @@ services:
     command:
       - '--model_config_file=/models/models.config'
       - '--model_config_file_poll_wait_seconds=60'
+      - '--allow_version_labels_for_unavailable_models'
 ```
+
+By default TFS does not allow labelling of models that are not ready to serve. So usually you had to avoid including the labels in the config file and spin up the container (otherwise you'll get an error) and after the models were loaded for serving you could edit the config file to include labels. By setting `--allow_version_labels_for_unavailable_models` flag to true you avoid having to do this.
 
 Deploying the model by `docker-compose` command:
 ```sh
@@ -279,7 +294,12 @@ $ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/re
         }
     ]
 }
-$ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/resnet/versions/101:predict
+```
+
+Now ask for a prediction to the same model but this time using labels instead of versions. Notice that the URL changes slightly:
+
+```sh
+$ curl -d @payloads/request-body.json -X POST http://localhost:8501/v1/models/resnet/labels/canary:predict
 {
     "predictions": [
         {
@@ -375,6 +395,7 @@ services:
     command:
       - '--model_config_file=/models/models.config'
       - '--model_config_file_poll_wait_seconds=60'
+      - '--allow_version_labels_for_unavailable_models'
       - '--monitoring_config_file=/models/monitor.config'
 ```
 
@@ -425,6 +446,7 @@ services:
     command:
       - '--model_config_file=/models/models.config'
       - '--model_config_file_poll_wait_seconds=60'
+      - '--allow_version_labels_for_unavailable_models'
       - '--monitoring_config_file=/models/monitor.config'
       - '--batching_parameters_file=/models/batching.config'
       - '--enable_batching'

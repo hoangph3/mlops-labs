@@ -4,7 +4,12 @@ import argparse
 
 
 def main(args):
-    df = pd.read_csv(args.url)
+    try:
+        df = pd.read_csv(args.url)
+    except Exception as e:
+        print(e)
+        print("Default load data from data.csv file")
+        df = pd.read_csv("data.csv")
     df = df.sample(frac=1).reset_index(drop=True)
 
     Path(args.output_csv).parent.mkdir(parents=True, exist_ok=True)

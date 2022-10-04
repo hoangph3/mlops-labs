@@ -2,31 +2,31 @@ name: split-data
 description: split-data
 
 inputs:
-  - name: input_csv
+  - name: Input CSV
     type: LocalPath
-  - name: test_size
+  - name: Test Size
     type: Float
 
 outputs:
-  - name: train_csv
+  - name: Train CSV
     type: LocalPath
     description: 'Path where train data will be stored'
-  - name: test_csv
+  - name: Test CSV
     type: LocalPath
     description: 'Path where test data will be stored'
 
 implementation:
   container:
-    image: hoangph3/kfp_preprocess_data:latest
+    image: hoangph3/kfp_preprocess_data:v0.0.1
     command: [
         python,
         split_csv.py,
         --test_size,
-        { inputValue: test_size },
+        { inputValue: Test Size },
         --input_csv,
-        { inputPath: input_csv },
+        { inputPath: Input CSV },
         --train_csv,
-        { outputPath: train_csv },
+        { outputPath: Train CSV },
         --test_csv,
-        { outputPath: test_csv }
+        { outputPath: Test CSV }
     ]

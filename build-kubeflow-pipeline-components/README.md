@@ -46,16 +46,14 @@ Forwarding from [::1]:8080 -> 3000
 
 You can then open your browser and go to http://localhost:8080 to see the user interface.
 
-#### 2. Building components
-
+#### 2. Building components and pipeline
 ```sh
 $ python3 build_component.py
-```
-
-#### 3. Building pipeline
-
-```
 $ python3 build_pipeline.py
 ```
 
 #### 4. Run pipeline
+
+- Upload pipeline
+- Create new experiment
+- Run pipeline in the experiment

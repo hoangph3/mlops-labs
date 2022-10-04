@@ -2,22 +2,22 @@ name: download-data
 description: download-data
 
 inputs:
-  - name: url
+  - name: Data URL
     type: String
 
 outputs:
-  - name: output_csv
+  - name: Output CSV
     type: LocalPath
     description: 'Path where downloaded data will be stored'
 
 implementation:
   container:
-    image: hoangph3/kfp_download_data:latest
+    image: hoangph3/kfp_download_data:v0.0.1
     command: [
         python,
         download_csv.py,
         --url,
-        { inputValue: url },
+        { inputValue: Data URL },
         --output_csv,
-        { outputPath: output_csv }
+        { outputPath: Output CSV }
     ]

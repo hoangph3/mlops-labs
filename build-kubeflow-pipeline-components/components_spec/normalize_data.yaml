@@ -19,7 +19,7 @@ outputs:
 
 implementation:
   container:
-    image: hoangph3/kfp_preprocess_data:latest
+    image: hoangph3/kfp_preprocess_data:v0.0.1
     command: [
         python,
         normalize.py,

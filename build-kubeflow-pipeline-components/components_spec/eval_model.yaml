@@ -1,0 +1,30 @@
+name: eval-model
+description: eval-model
+
+inputs:
+  - name: Test Features
+    type: LocalPath
+  - name: Test Labels
+    type: LocalPath
+  - name: Model Path
+    type: LocalPath
+
+outputs:
+  - name: Output Metrics
+    type: Metrics
+
+implementation:
+  container:
+    image: hoangph3/kfp_base_model:v0.0.1
+    command: [
+        python,
+        evaluate.py,
+        --input_test_x,
+        { inputPath: Test Features },
+        --input_test_y,
+        { inputPath: Test Labels },
+        --input_model,
+        { inputPath: Model Path },
+        --metrics_path,
+        { outputPath: Output Metrics }
+    ]

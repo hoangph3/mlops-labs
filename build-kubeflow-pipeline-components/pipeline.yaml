@@ -2,10 +2,12 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: kubeflow-pipeline-components-tutorial-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.5, pipelines.kubeflow.org/pipeline_compilation_time: '2022-10-04T00:44:05.212139',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.5, pipelines.kubeflow.org/pipeline_compilation_time: '2022-10-04T22:18:38.460723',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline to learn how
-      to construct pipeline", "inputs": [{"name": "url", "type": "String"}, {"name":
-      "test_size", "type": "Float"}], "name": "Kubeflow Pipeline Components Tutorial"}'}
+      to construct pipeline", "inputs": [{"name": "data_url", "type": "String"}, {"name":
+      "test_size", "type": "Float"}, {"name": "batch_size", "type": "Integer"}, {"name":
+      "epochs", "type": "Integer"}, {"name": "learning_rate", "type": "Float"}], "name":
+      "Kubeflow Pipeline Components Tutorial"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.5}
 spec:
   entrypoint: kubeflow-pipeline-components-tutorial
@@ -13,15 +15,15 @@ spec:
   - name: download-data
     container:
       args: []
-      command: [python, download_csv.py, --url, '{{inputs.parameters.url}}', --output_csv,
-        /tmp/outputs/output_csv/data]
-      image: hoangph3/kfp_download_data:latest
+      command: [python, download_csv.py, --url, '{{inputs.parameters.data_url}}',
+        --output_csv, /tmp/outputs/Output_CSV/data]
+      image: hoangph3/kfp_download_data:v0.0.1
     inputs:
       parameters:
-      - {name: url}
+      - {name: data_url}
     outputs:
       artifacts:
-      - {name: download-data-output_csv, path: /tmp/outputs/output_csv/data}
+      - {name: download-data-Output-CSV, path: /tmp/outputs/Output_CSV/data}
     metadata:
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
@@ -29,32 +31,73 @@ spec:
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"description": "download-data",
           "implementation": {"container": {"command": ["python", "download_csv.py",
-          "--url", {"inputValue": "url"}, "--output_csv", {"outputPath": "output_csv"}],
-          "image": "hoangph3/kfp_download_data:latest"}}, "inputs": [{"name": "url",
-          "type": "String"}], "name": "download-data", "outputs": [{"description":
-          "Path where downloaded data will be stored", "name": "output_csv", "type":
-          "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest": "881bf4d561118426b7dc1c47ba64709b4173ab739328f569f87fbeebbe444631",
-          "url": "components_spec/download_csv_data.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"url":
-          "{{inputs.parameters.url}}"}'}
+          "--url", {"inputValue": "Data URL"}, "--output_csv", {"outputPath": "Output
+          CSV"}], "image": "hoangph3/kfp_download_data:v0.0.1"}}, "inputs": [{"name":
+          "Data URL", "type": "String"}], "name": "download-data", "outputs": [{"description":
+          "Path where downloaded data will be stored", "name": "Output CSV", "type":
+          "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest": "1c0929db3c09f6410e98c3982a122865ef81b52c3a69c824ff7f524954ed5493",
+          "url": "components_spec/download_csv_data.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"Data
+          URL": "{{inputs.parameters.data_url}}"}'}
+  - name: eval-model
+    container:
+      args: []
+      command: [python, evaluate.py, --input_test_x, /tmp/inputs/Test_Features/data,
+        --input_test_y, /tmp/inputs/Test_Labels/data, --input_model, /tmp/inputs/Model_Path/data,
+        --metrics_path, /tmp/outputs/Output_Metrics/data]
+      image: hoangph3/kfp_base_model:v0.0.1
+    inputs:
+      artifacts:
+      - {name: train-model-Model-Path, path: /tmp/inputs/Model_Path/data}
+      - {name: preprocess-data-Test-Features, path: /tmp/inputs/Test_Features/data}
+      - {name: preprocess-data-Test-Labels, path: /tmp/inputs/Test_Labels/data}
+    outputs:
+      artifacts:
+      - {name: eval-model-Output-Metrics, path: /tmp/outputs/Output_Metrics/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "eval-model",
+          "implementation": {"container": {"command": ["python", "evaluate.py", "--input_test_x",
+          {"inputPath": "Test Features"}, "--input_test_y", {"inputPath": "Test Labels"},
+          "--input_model", {"inputPath": "Model Path"}, "--metrics_path", {"outputPath":
+          "Output Metrics"}], "image": "hoangph3/kfp_base_model:v0.0.1"}}, "inputs":
+          [{"name": "Test Features", "type": "LocalPath"}, {"name": "Test Labels",
+          "type": "LocalPath"}, {"name": "Model Path", "type": "LocalPath"}], "name":
+          "eval-model", "outputs": [{"name": "Output Metrics", "type": "Metrics"}]}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "9bcb4c4a573bbb26f0a8141e6e129134a78a036ce8f53bd9a63308db683bc732",
+          "url": "components_spec/eval_model.yaml"}'}
   - name: kubeflow-pipeline-components-tutorial
     inputs:
       parameters:
+      - {name: batch_size}
+      - {name: data_url}
+      - {name: epochs}
+      - {name: learning_rate}
       - {name: test_size}
-      - {name: url}
     dag:
       tasks:
       - name: download-data
         template: download-data
         arguments:
           parameters:
-          - {name: url, value: '{{inputs.parameters.url}}'}
+          - {name: data_url, value: '{{inputs.parameters.data_url}}'}
+      - name: eval-model
+        template: eval-model
+        dependencies: [preprocess-data, train-model]
+        arguments:
+          artifacts:
+          - {name: preprocess-data-Test-Features, from: '{{tasks.preprocess-data.outputs.artifacts.preprocess-data-Test-Features}}'}
+          - {name: preprocess-data-Test-Labels, from: '{{tasks.preprocess-data.outputs.artifacts.preprocess-data-Test-Labels}}'}
+          - {name: train-model-Model-Path, from: '{{tasks.train-model.outputs.artifacts.train-model-Model-Path}}'}
       - name: preprocess-data
         template: preprocess-data
         dependencies: [split-data]
         arguments:
           artifacts:
-          - {name: split-data-test_csv, from: '{{tasks.split-data.outputs.artifacts.split-data-test_csv}}'}
-          - {name: split-data-train_csv, from: '{{tasks.split-data.outputs.artifacts.split-data-train_csv}}'}
+          - {name: split-data-Test-CSV, from: '{{tasks.split-data.outputs.artifacts.split-data-Test-CSV}}'}
+          - {name: split-data-Train-CSV, from: '{{tasks.split-data.outputs.artifacts.split-data-Train-CSV}}'}
       - name: split-data
         template: split-data
         dependencies: [download-data]
@@ -62,7 +105,18 @@ spec:
           parameters:
           - {name: test_size, value: '{{inputs.parameters.test_size}}'}
           artifacts:
-          - {name: download-data-output_csv, from: '{{tasks.download-data.outputs.artifacts.download-data-output_csv}}'}
+          - {name: download-data-Output-CSV, from: '{{tasks.download-data.outputs.artifacts.download-data-Output-CSV}}'}
+      - name: train-model
+        template: train-model
+        dependencies: [preprocess-data]
+        arguments:
+          parameters:
+          - {name: batch_size, value: '{{inputs.parameters.batch_size}}'}
+          - {name: epochs, value: '{{inputs.parameters.epochs}}'}
+          - {name: learning_rate, value: '{{inputs.parameters.learning_rate}}'}
+          artifacts:
+          - {name: preprocess-data-Train-Features, from: '{{tasks.preprocess-data.outputs.artifacts.preprocess-data-Train-Features}}'}
+          - {name: preprocess-data-Train-Labels, from: '{{tasks.preprocess-data.outputs.artifacts.preprocess-data-Train-Labels}}'}
   - name: preprocess-data
     container:
       args: []
@@ -70,11 +124,11 @@ spec:
         --input_test_csv, /tmp/inputs/Test_CSV/data, --output_train_x, /tmp/outputs/Train_Features/data,
         --output_train_y, /tmp/outputs/Train_Labels/data, --output_test_x, /tmp/outputs/Test_Features/data,
         --output_test_y, /tmp/outputs/Test_Labels/data]
-      image: hoangph3/kfp_preprocess_data:latest
+      image: hoangph3/kfp_preprocess_data:v0.0.1
     inputs:
       artifacts:
-      - {name: split-data-test_csv, path: /tmp/inputs/Test_CSV/data}
-      - {name: split-data-train_csv, path: /tmp/inputs/Train_CSV/data}
+      - {name: split-data-Test-CSV, path: /tmp/inputs/Test_CSV/data}
+      - {name: split-data-Train-CSV, path: /tmp/inputs/Train_CSV/data}
     outputs:
       artifacts:
       - {name: preprocess-data-Test-Features, path: /tmp/outputs/Test_Features/data}
@@ -92,29 +146,29 @@ spec:
           "--output_train_x", {"outputPath": "Train Features"}, "--output_train_y",
           {"outputPath": "Train Labels"}, "--output_test_x", {"outputPath": "Test
           Features"}, "--output_test_y", {"outputPath": "Test Labels"}], "image":
-          "hoangph3/kfp_preprocess_data:latest"}}, "inputs": [{"name": "Train CSV",
+          "hoangph3/kfp_preprocess_data:v0.0.1"}}, "inputs": [{"name": "Train CSV",
           "type": "LocalPath"}, {"name": "Test CSV", "type": "LocalPath"}], "name":
           "preprocess-data", "outputs": [{"name": "Train Features", "type": "LocalPath"},
           {"name": "Train Labels", "type": "LocalPath"}, {"name": "Test Features",
           "type": "LocalPath"}, {"name": "Test Labels", "type": "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
-          "ef9db22a6861bf382364f43753ac80f83855a6ff88737e9f0fae5e025a2b57fc", "url":
+          "7563d8f00348df4d35a33ed235c8b87e73b23266a0722a227b4f4935ea5eca02", "url":
           "components_spec/normalize_data.yaml"}'}
   - name: split-data
     container:
       args: []
       command: [python, split_csv.py, --test_size, '{{inputs.parameters.test_size}}',
-        --input_csv, /tmp/inputs/input_csv/data, --train_csv, /tmp/outputs/train_csv/data,
-        --test_csv, /tmp/outputs/test_csv/data]
-      image: hoangph3/kfp_preprocess_data:latest
+        --input_csv, /tmp/inputs/Input_CSV/data, --train_csv, /tmp/outputs/Train_CSV/data,
+        --test_csv, /tmp/outputs/Test_CSV/data]
+      image: hoangph3/kfp_preprocess_data:v0.0.1
     inputs:
       parameters:
       - {name: test_size}
       artifacts:
-      - {name: download-data-output_csv, path: /tmp/inputs/input_csv/data}
+      - {name: download-data-Output-CSV, path: /tmp/inputs/Input_CSV/data}
     outputs:
       artifacts:
-      - {name: split-data-test_csv, path: /tmp/outputs/test_csv/data}
-      - {name: split-data-train_csv, path: /tmp/outputs/train_csv/data}
+      - {name: split-data-Test-CSV, path: /tmp/outputs/Test_CSV/data}
+      - {name: split-data-Train-CSV, path: /tmp/outputs/Train_CSV/data}
     metadata:
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
@@ -122,18 +176,62 @@ spec:
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"description": "split-data",
           "implementation": {"container": {"command": ["python", "split_csv.py", "--test_size",
-          {"inputValue": "test_size"}, "--input_csv", {"inputPath": "input_csv"},
-          "--train_csv", {"outputPath": "train_csv"}, "--test_csv", {"outputPath":
-          "test_csv"}], "image": "hoangph3/kfp_preprocess_data:latest"}}, "inputs":
-          [{"name": "input_csv", "type": "LocalPath"}, {"name": "test_size", "type":
+          {"inputValue": "Test Size"}, "--input_csv", {"inputPath": "Input CSV"},
+          "--train_csv", {"outputPath": "Train CSV"}, "--test_csv", {"outputPath":
+          "Test CSV"}], "image": "hoangph3/kfp_preprocess_data:v0.0.1"}}, "inputs":
+          [{"name": "Input CSV", "type": "LocalPath"}, {"name": "Test Size", "type":
           "Float"}], "name": "split-data", "outputs": [{"description": "Path where
-          train data will be stored", "name": "train_csv", "type": "LocalPath"}, {"description":
-          "Path where test data will be stored", "name": "test_csv", "type": "LocalPath"}]}',
-        pipelines.kubeflow.org/component_ref: '{"digest": "04031845f95de4c12f6d5e8df20956975b4351abf76f8fc89b1fc32493787233",
-          "url": "components_spec/split_csv_data.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"test_size":
-          "{{inputs.parameters.test_size}}"}'}
+          train data will be stored", "name": "Train CSV", "type": "LocalPath"}, {"description":
+          "Path where test data will be stored", "name": "Test CSV", "type": "LocalPath"}]}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "909cfd6190c80e3effb0be0504123d90744cecd314f2037c508a019b8561ea0b",
+          "url": "components_spec/split_csv_data.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"Test
+          Size": "{{inputs.parameters.test_size}}"}'}
+  - name: train-model
+    container:
+      args: []
+      command: [python, train.py, --input_train_x, /tmp/inputs/Train_Features/data,
+        --input_train_y, /tmp/inputs/Train_Labels/data, --learning_rate, '{{inputs.parameters.learning_rate}}',
+        --epochs, '{{inputs.parameters.epochs}}', --batch_size, '{{inputs.parameters.batch_size}}',
+        --output_model, /tmp/outputs/Model_Path/data, --output_history, /tmp/outputs/History_Path/data]
+      image: hoangph3/kfp_base_model:v0.0.1
+    inputs:
+      parameters:
+      - {name: batch_size}
+      - {name: epochs}
+      - {name: learning_rate}
+      artifacts:
+      - {name: preprocess-data-Train-Features, path: /tmp/inputs/Train_Features/data}
+      - {name: preprocess-data-Train-Labels, path: /tmp/inputs/Train_Labels/data}
+    outputs:
+      artifacts:
+      - {name: train-model-History-Path, path: /tmp/outputs/History_Path/data}
+      - {name: train-model-Model-Path, path: /tmp/outputs/Model_Path/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "train-model",
+          "implementation": {"container": {"command": ["python", "train.py", "--input_train_x",
+          {"inputPath": "Train Features"}, "--input_train_y", {"inputPath": "Train
+          Labels"}, "--learning_rate", {"inputValue": "Learning Rate"}, "--epochs",
+          {"inputValue": "Epochs"}, "--batch_size", {"inputValue": "Batch Size"},
+          "--output_model", {"outputPath": "Model Path"}, "--output_history", {"outputPath":
+          "History Path"}], "image": "hoangph3/kfp_base_model:v0.0.1"}}, "inputs":
+          [{"name": "Train Features", "type": "LocalPath"}, {"name": "Train Labels",
+          "type": "LocalPath"}, {"name": "Learning Rate", "type": "Float"}, {"name":
+          "Epochs", "type": "Integer"}, {"name": "Batch Size", "type": "Integer"}],
+          "name": "train-model", "outputs": [{"name": "Model Path", "type": "LocalPath"},
+          {"name": "History Path", "type": "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "40ce1fe9d34332a3294ddb7b3cf4a38d6f8d8f337d876f3df472abb15d18cf65", "url":
+          "components_spec/train_model.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"Batch
+          Size": "{{inputs.parameters.batch_size}}", "Epochs": "{{inputs.parameters.epochs}}",
+          "Learning Rate": "{{inputs.parameters.learning_rate}}"}'}
   arguments:
     parameters:
-    - {name: url}
+    - {name: data_url}
     - {name: test_size}
+    - {name: batch_size}
+    - {name: epochs}
+    - {name: learning_rate}
   serviceAccountName: pipeline-runner

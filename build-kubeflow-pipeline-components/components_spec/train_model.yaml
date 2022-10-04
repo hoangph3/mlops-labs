@@ -1,0 +1,42 @@
+name: train-model
+description: train-model
+
+inputs:
+  - name: Train Features
+    type: LocalPath
+  - name: Train Labels
+    type: LocalPath
+  - name: Learning Rate
+    type: Float
+  - name: Epochs
+    type: Integer
+  - name: Batch Size
+    type: Integer
+
+outputs:
+  - name: Model Path
+    type: LocalPath
+  - name: History Path
+    type: LocalPath
+
+implementation:
+  container:
+    image: hoangph3/kfp_base_model:v0.0.1
+    command: [
+        python,
+        train.py,
+        --input_train_x,
+        { inputPath: Train Features },
+        --input_train_y,
+        { inputPath: Train Labels },
+        --learning_rate,
+        { inputValue: Learning Rate },
+        --epochs,
+        { inputValue: Epochs },
+        --batch_size,
+        { inputValue: Batch Size },
+        --output_model,
+        { outputPath: Model Path },
+        --output_history,
+        { outputPath: History Path }
+    ]

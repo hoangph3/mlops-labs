@@ -41,11 +41,61 @@ class EqualErrorRate(metrics.Metric):
         self.false_negatives.assign_add(false_negative)
 
     def result(self):
-        return tf.reduce_mean(self.false_positives), tf.reduce_mean(self.false_negatives)
+        return self.false_positives, self.false_negatives
 
     def reset_state(self):
         self.false_positives.assign(0.0)
         self.false_negatives.assign(0.0)
+
+
+def false_positive(y_true, y_pred):
+    pairwise_dist = _pairwise_distances(y_pred)
+
+    # get positive distace
+    mask_anchor_positive = _get_anchor_positive_triplet_mask(y_true)
+    anchor_positive_dist = tf.multiply(mask_anchor_positive, pairwise_dist)
+
+    # compute threshold
+    threshold = tf.reduce_sum(anchor_positive_dist) / tf.reduce_sum(mask_anchor_positive)
+
+    # get negative distance
+    mask_anchor_negative = _get_anchor_negative_triplet_mask(y_true)
+    anchor_negative_dist = pairwise_dist + 2 * threshold * (1.0 - mask_anchor_negative)
+
+    # compute fp and fn
+    false_positive = tf.reduce_sum(
+        tf.cast(anchor_positive_dist > threshold, dtype=tf.float32)
+    ) / tf.reduce_sum(mask_anchor_positive)
+
+    false_negative = tf.reduce_sum(
+        tf.cast(anchor_negative_dist < threshold, dtype=tf.float32)
+    ) / tf.reduce_sum(mask_anchor_negative)
+
+    return tf.cast(false_positive, dtype=tf.float32)
+
+
+def false_negative(y_true, y_pred):
+    pairwise_dist = _pairwise_distances(y_pred)
+
+    # get positive distace
+    mask_anchor_positive = _get_anchor_positive_triplet_mask(y_true)
+    anchor_positive_dist = tf.multiply(mask_anchor_positive, pairwise_dist)
+
+    # compute threshold
+    threshold = tf.reduce_sum(anchor_positive_dist) / tf.reduce_sum(mask_anchor_positive)
+
+    # get negative distance
+    mask_anchor_negative = _get_anchor_negative_triplet_mask(y_true)
+    anchor_negative_dist = pairwise_dist + 2 * threshold * (1.0 - mask_anchor_negative)
+
+    # compute fp and fn
+    false_positive = tf.reduce_sum(tf.cast(anchor_positive_dist > threshold, dtype=tf.float32)) / tf.reduce_sum(mask_anchor_positive)
+
+    false_negative = tf.reduce_sum(
+        tf.cast(anchor_negative_dist < threshold, dtype=tf.float32)
+    ) / tf.reduce_sum(mask_anchor_negative)
+
+    return false_negative
 
 
 def _pairwise_distances(embeddings, squared=False):

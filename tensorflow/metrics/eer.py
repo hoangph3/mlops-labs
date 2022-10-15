@@ -1,51 +1,4 @@
-from tensorflow.keras import metrics
 import tensorflow as tf
-
-
-class EqualErrorRate(metrics.Metric):
-    def __init__(self, name="eer", **kwargs):
-        super(EqualErrorRate, self).__init__(name=name, **kwargs)
-        self.false_positives = self.add_weight(name="fp", initializer="zeros")
-        self.false_negatives = self.add_weight(name="fn", initializer="zeros")
-
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        """
-        y_true: tensor of shape (batch_size, )
-        y_pred: tensor of shape (batch_size, embed_dim)
-        """
-        # compute pairwise distance
-        pairwise_dist = _pairwise_distances(y_pred)
-
-        # get positive distace
-        mask_anchor_positive = _get_anchor_positive_triplet_mask(y_true)
-        anchor_positive_dist = tf.multiply(mask_anchor_positive, pairwise_dist)
-
-        # compute threshold
-        threshold = tf.reduce_sum(anchor_positive_dist) / tf.reduce_sum(mask_anchor_positive)
-
-        # get negative distance
-        mask_anchor_negative = _get_anchor_negative_triplet_mask(y_true)
-        anchor_negative_dist = pairwise_dist + 2 * threshold * (1.0 - mask_anchor_negative)
-
-        # compute fp and fn
-        false_positive = tf.reduce_sum(
-            tf.cast(anchor_positive_dist > threshold, dtype=tf.float32)
-        ) / tf.reduce_sum(mask_anchor_positive)
-
-        false_negative = tf.reduce_sum(
-            tf.cast(anchor_negative_dist < threshold, dtype=tf.float32)
-        ) / tf.reduce_sum(mask_anchor_negative)
-
-        # assign
-        self.false_positives.assign_add(false_positive)
-        self.false_negatives.assign_add(false_negative)
-
-    def result(self):
-        return self.false_positives, self.false_negatives
-
-    def reset_state(self):
-        self.false_positives.assign(0.0)
-        self.false_negatives.assign(0.0)
 
 
 def false_positive(y_true, y_pred):
@@ -95,7 +48,7 @@ def false_negative(y_true, y_pred):
         tf.cast(anchor_negative_dist < threshold, dtype=tf.float32)
     ) / tf.reduce_sum(mask_anchor_negative)
 
-    return false_negative
+    return tf.cast(false_negative, dtype=tf.float32)
 
 
 def _pairwise_distances(embeddings, squared=False):

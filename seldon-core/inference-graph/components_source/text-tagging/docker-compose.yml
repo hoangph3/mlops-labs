@@ -1,0 +1,12 @@
+version: "3.2"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: text_tagging
+    image: hoangph3/text-tagging:0.0.1
+    ports:
+      - '5001:5000'
+      - '9001:9000'

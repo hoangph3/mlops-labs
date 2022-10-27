@@ -1,0 +1,12 @@
+version: "3.2"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: summarize_text
+    image: hoangph3/summarize-text:0.0.1
+    ports:
+      - '5002:5000'
+      - '9002:9000'

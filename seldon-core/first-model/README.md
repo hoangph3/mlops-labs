@@ -82,5 +82,19 @@ $ echo $INGRESS_HOST
 10.106.254.233
 
 $ curl -X POST -d @payload.json -H 'Content-Type: application/json' \
-    http://$INGRESS_HOST/seldon/seldon-model/iris-model/api/v1.0/predictions
+    http://$INGRESS_HOST/seldon/seldon-model/iris-model/api/v1.0/predictions | json_pp
+
+{
+   "data" : {
+      "ndarray" : [
+         2
+      ],
+      "names" : []
+   },
+   "meta" : {
+      "requestPath" : {
+         "classifier" : "sklearn_iris_classifier:0.0.1"
+      }
+   }
+}
 ```

@@ -198,7 +198,7 @@ $ echo $INGRESS_HOST
 10.106.254.233
 
 $ curl -X POST -d @payload.json -H 'Content-Type: application/json' \
-    http://$INGRESS_HOST/seldon/seldon-model/seldon-pipeline/api/v1.0/predictions
+    http://$INGRESS_HOST/seldon/seldon-model/seldon-pipeline/api/v1.0/predictions | json_pp
 
 {
   "data": {

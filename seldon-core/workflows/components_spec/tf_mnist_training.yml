@@ -1,0 +1,33 @@
+apiVersion: kubeflow.org/v1
+kind: TFJob
+metadata:
+  name: tf-mnist-training
+  namespace: seldon-model
+spec:
+  tfReplicaSpecs:
+    Worker:
+      replicas: 1
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: hoangph3/tf_mnist_training:v0.0.1
+              imagePullPolicy: IfNotPresent
+              args:
+                - --epochs=20
+                - --batch_size=64
+                - --saved_model_path=/models/saved_model_dir
+                - --checkpoint_path=/models/checkpoints
+                - --data_file=/data/mnist.npz
+              volumeMounts:
+              - mountPath: "/models"
+                name: "persistent-storage"
+              - name: data-dir
+                mountPath: /data
+          volumes:
+          - name: "persistent-storage"
+            persistentVolumeClaim:
+              claimName: "nfs-1"
+          - name: data-dir
+            hostPath:
+              path: /home/hoang/Downloads/mnist/data

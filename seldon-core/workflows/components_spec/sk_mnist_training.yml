@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sk-mnist-training
+  namespace: seldon-model
+spec:
+  template:
+    spec:
+      containers:
+        - name: sk-mnist-training
+          image: hoangph3/sk_mnist_training:v0.0.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - --n_estimators=15
+            - --saved_model_path=/models
+            - --data_file=/data/mnist.npz
+          volumeMounts:
+          - mountPath: "/models"
+            name: "persistent-storage"
+          - name: data-dir
+            mountPath: /data
+      restartPolicy: "Never"
+      volumes:
+      - name: "persistent-storage"
+        persistentVolumeClaim:
+          claimName: "nfs-1"
+      - name: data-dir
+        hostPath:
+          path: /home/hoang/Downloads/mnist/data

@@ -22,12 +22,14 @@ Total nSV = 60
 ### Write a class wrapper that exposes the logic of your model
 ```python
 import pickle
-class Model:
-    def __init__(self):
-        self._model = pickle.loads(open("model.pkl", "rb") )
+from sklearn import svm
 
-    def predict(self, X):
-        output = self._model(X)
+class IrisClassifier:
+    def __init__(self):
+        self._model: svm.SVC = pickle.load(open("model.pkl", "rb"))
+
+    def predict(self, X, features_names=None, meta=None):
+        output = self._model.predict(X)
         return output
 ```
 

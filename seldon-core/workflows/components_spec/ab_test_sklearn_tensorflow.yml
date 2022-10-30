@@ -1,0 +1,54 @@
+---
+apiVersion: machinelearning.seldon.io/v1alpha2
+kind: SeldonDeployment
+metadata:
+  labels:
+    app: seldon
+  name: mnist-classifier
+  namespace: seldon-model
+spec:
+  annotations:
+    project_name: kubeflow-seldon
+    deployment_version: v1
+    seldon.io/rest-connection-timeout: '100'
+  name: mnist-classifier
+  predictors:
+  - componentSpecs:
+    - spec:
+        containers:
+        - image: hoangph3/tf_mnist_serving:v0.0.1
+          imagePullPolicy: IfNotPresent
+          name: tf-model
+          volumeMounts:
+          - mountPath: "/models"
+            name: persistent-storage
+        - image: hoangph3/sk_mnist_serving:v0.0.1
+          imagePullPolicy: IfNotPresent
+          name: sk-model
+          volumeMounts:
+          - mountPath: "/models"
+            name: persistent-storage
+        volumes:
+        - name: persistent-storage
+          persistentVolumeClaim:
+            claimName: nfs-1
+    name: mnist-classifier
+    replicas: 1
+    annotations:
+      predictor_version: v1
+    graph:
+      name: random-ab-test
+      implementation: RANDOM_ABTEST
+      parameters:
+      - name: ratioA
+        value: '0.5'
+        type: FLOAT
+      children:
+      - name: tf-model
+        endpoint:
+          type: REST
+        type: MODEL
+      - name: sk-model
+        endpoint:
+          type: REST
+        type: MODEL

@@ -1,0 +1,57 @@
+apiVersion: machinelearning.seldon.io/v1alpha2
+kind: SeldonDeployment
+metadata:
+  labels:
+    app: seldon
+  name: example
+  namespace: seldon-model
+spec:
+  name: canary-example
+  predictors:
+  - componentSpecs:
+    - spec:
+        containers:
+        - image: hoangph3/tf_mnist_serving:v0.0.1
+          imagePullPolicy: IfNotPresent
+          name: classifier
+          volumeMounts:
+          - mountPath: "/models"
+            name: persistent-storage
+        terminationGracePeriodSeconds: 1
+        volumes:
+        - name: persistent-storage
+          persistentVolumeClaim:
+            claimName: nfs-1
+    graph:
+      children: []
+      endpoint:
+        type: REST
+      name: classifier
+      type: MODEL
+    name: main
+    replicas: 1
+    traffic: 75
+  
+  - componentSpecs:
+    - spec:
+        containers:
+        - image: hoangph3/sk_mnist_serving:v0.0.1
+          imagePullPolicy: IfNotPresent
+          name: classifier
+          volumeMounts:
+          - mountPath: "/models"
+            name: persistent-storage
+        terminationGracePeriodSeconds: 1
+        volumes:
+        - name: persistent-storage
+          persistentVolumeClaim:
+            claimName: nfs-1
+    graph:
+      children: []
+      endpoint:
+        type: REST
+      name: classifier
+      type: MODEL
+    name: canary
+    replicas: 1
+    traffic: 25

@@ -1,0 +1,26 @@
+apiVersion: machinelearning.seldon.io/v1alpha2
+kind: SeldonDeployment
+metadata:
+  name: "mnist-kafka"
+  namespace: seldon-model
+spec:
+  serverType: kafka
+  predictors:
+  - componentSpecs:
+    - spec:
+        containers:
+        - name: "classifier"
+          image: hoangph3/sklearn_mnist_classifier:v0.0.1
+    svcOrchSpec:
+      env:
+      - name: KAFKA_BROKER
+        value: 192.168.0.5:9092
+      - name: KAFKA_INPUT_TOPIC
+        value: cifar10-rest-input
+      - name: KAFKA_OUTPUT_TOPIC
+        value: cifar10-rest-output
+    graph:
+      name: "classifier"
+      type: "MODEL"
+    name: "default"
+    replicas: 1

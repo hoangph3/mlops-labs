@@ -1,0 +1,21 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: cifa10-rest-input
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: 2
+  replicas: 1
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: cifa10-rest-output
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: 2
+  replicas: 1

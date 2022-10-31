@@ -1,0 +1,17 @@
+apiVersion: machinelearning.seldon.io/v1alpha2
+kind: SeldonDeployment
+metadata:
+  name: iris-model
+  namespace: seldon-model
+spec:
+  name: iris
+  predictors:
+  - componentSpecs:
+    - spec:
+        containers:
+        - name: classifier
+          image: hoangph3/sklearn_iris_classifier:0.0.1
+    graph:
+      name: classifier
+    name: default
+    replicas: 1

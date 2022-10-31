@@ -1,0 +1,27 @@
+apiVersion: machinelearning.seldon.io/v1alpha2
+kind: SeldonDeployment
+metadata:
+  name: "mnist-classifier"
+  labels:
+    app: "seldon"
+  namespace: seldon-model
+spec:
+  name: "classifier"
+  annotations:
+    deployment_version: "v1"
+    project_name: "MNIST Example"
+  predictors:
+  - componentSpecs:
+    - spec:
+        containers:
+        - name: "classifier"
+          image: hoangph3/sklearn_mnist_classifier:v0.0.1
+        terminationGracePeriodSeconds: 1
+    graph:
+      children: []
+      endpoint:
+        type: "REST"
+      name: "classifier"
+      type: "MODEL"
+    name: "default"
+    replicas: 1

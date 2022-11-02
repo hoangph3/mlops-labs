@@ -20,11 +20,11 @@ def load_mnist_data(data_file):
 
 def gen_rest_request(data_file="/home/hoang/Downloads/mnist/data/mnist.npz"):
     data = load_mnist_data(data_file)
-    producer = KafkaProducer(bootstrap_servers=["localhost:9092"],
+    producer = KafkaProducer(bootstrap_servers=["192.168.0.5:32000"],
                              value_serializer=lambda x: json.dumps(x).encode("utf-8"))
     for example in tqdm(data):
         line = {"data": {"ndarray": example.tolist()}}
-        producer.send("cifar10-rest-input", line)
+        producer.send("mnist-rest-input", line)
 
 
 def gen_grpc_request(data_file="/home/hoang/Downloads/mnist/data/mnist.npz"):

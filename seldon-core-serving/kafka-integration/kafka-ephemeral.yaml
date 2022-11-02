@@ -7,10 +7,16 @@ spec:
   kafka:
     replicas: 1
     listeners:
-    - name: plain
-      port: 9092
-      type: nodeport
-      tls: false
+      - name: external
+        port: 9092
+        type: nodeport
+        tls: false
+        configuration:
+          bootstrap:
+            nodePort: 32100
+          brokers:
+          - broker: 0
+            nodePort: 32000
     storage:
       type: ephemeral
     config:

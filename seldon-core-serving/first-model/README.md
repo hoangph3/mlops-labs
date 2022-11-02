@@ -1,5 +1,5 @@
 ### Setup environments
-[Link here!](/seldon-core/inference-graph/README.md/)
+[Link here!](/seldon-core-serving/inference-graph/README.md)
 
 ### Training a model
 ```sh

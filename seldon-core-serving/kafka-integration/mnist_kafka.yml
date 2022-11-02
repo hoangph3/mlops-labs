@@ -14,11 +14,11 @@ spec:
     svcOrchSpec:
       env:
       - name: KAFKA_BROKER
-        value: 192.168.0.5:9092
+        value: my-cluster-kafka-external-0.kafka.svc.cluster.local:9092
       - name: KAFKA_INPUT_TOPIC
-        value: cifar10-rest-input
+        value: mnist-rest-input
       - name: KAFKA_OUTPUT_TOPIC
-        value: cifar10-rest-output
+        value: mnist-rest-output
     graph:
       name: "classifier"
       type: "MODEL"

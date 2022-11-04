@@ -3,7 +3,7 @@ kind: KafkaTopic
 metadata:
   name: mnist-rest-input
   labels:
-    strimzi.io/cluster: "my-cluster"
+    strimzi.io/cluster: "ephemeral-cluster"
   namespace: kafka
 spec:
   partitions: 2
@@ -14,7 +14,7 @@ kind: KafkaTopic
 metadata:
   name: mnist-rest-output
   labels:
-    strimzi.io/cluster: "my-cluster"
+    strimzi.io/cluster: "ephemeral-cluster"
   namespace: kafka
 spec:
   partitions: 2

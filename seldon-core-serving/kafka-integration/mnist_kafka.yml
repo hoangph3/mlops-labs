@@ -14,7 +14,7 @@ spec:
     svcOrchSpec:
       env:
       - name: KAFKA_BROKER
-        value: my-cluster-kafka-external-0.kafka.svc.cluster.local:9092
+        value: 10.105.143.149:9092
       - name: KAFKA_INPUT_TOPIC
         value: mnist-rest-input
       - name: KAFKA_OUTPUT_TOPIC

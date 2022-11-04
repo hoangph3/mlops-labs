@@ -1,11 +1,12 @@
 from kafka import KafkaConsumer
 import json
+import time
 
 
 if __name__ == "__main__":
     consumer = KafkaConsumer(
         "mnist-rest-output",
-        bootstrap_servers=["192.168.0.5:32000"],
+        bootstrap_servers=["127.0.0.1:32100"],
         # auto_offset_reset="earliest",
         # enable_auto_commit=True,
         # group_id="test",
@@ -14,3 +15,4 @@ if __name__ == "__main__":
     print(consumer.topics())
     for example in consumer:
         print(example.value)
+        time.sleep(1.0)

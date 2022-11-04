@@ -11,6 +11,8 @@ NAME                                                     READY   STATUS    RESTA
 mnist-classifier-default-0-classifier-5cdbd58c5b-9rbh5   3/3     Running   0          76s
 ```
 
+There are three pods, consist of `classifier`, `istio-proxy` and `seldon-container-engine`.
+
 2. Make a prediction after the Seldon Deployment is available via the ingress gateway:
 ```sh
 $ export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -37,47 +39,74 @@ $ curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/$V
 
 # deploy the Kafka cluster with external accessing
 $ kubectl apply -f kafka-ephemeral.yaml
+kafka.kafka.strimzi.io/ephemeral-cluster created
 
 $ kubectl get pods
-NAME                                          READY   STATUS    RESTARTS       AGE
-my-cluster-entity-operator-6b9c8fb54f-5kq7f   3/3     Running   0              3m21s
-my-cluster-kafka-0                            1/1     Running   0              3m45s
-my-cluster-zookeeper-0                        1/1     Running   0              4m9s
-strimzi-cluster-operator-54cb64cfdd-smqrm     1/1     Running   7 (125m ago)   24h
+NAME                                                 READY   STATUS    RESTARTS       AGE
+ephemeral-cluster-entity-operator-776554c699-vtclp   3/3     Running   0              101s
+ephemeral-cluster-kafka-0                            1/1     Running   0              2m5s
+ephemeral-cluster-zookeeper-0                        1/1     Running   0              2m29s
+strimzi-cluster-operator-54cb64cfdd-smqrm            1/1     Running   30 (30m ago)   2d13h
 
 # switch to default namespace
 $ kubectl config set-context --current --namespace=default
 
 # list service kafka
 $ kubectl get svc -n kafka
-NAME                                  TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                      AGE
-my-cluster-kafka-bootstrap            ClusterIP   10.96.132.51   <none>        9091/TCP                     4m10s
-my-cluster-kafka-brokers              ClusterIP   None           <none>        9090/TCP,9091/TCP            4m10s
-my-cluster-kafka-external-0           NodePort    10.98.47.184   <none>        9092:32000/TCP               4m10s
-my-cluster-kafka-external-bootstrap   NodePort    10.108.70.39   <none>        9092:32100/TCP               4m10s
-my-cluster-zookeeper-client           ClusterIP   10.97.94.160   <none>        2181/TCP                     4m34s
-my-cluster-zookeeper-nodes            ClusterIP   None           <none>        2181/TCP,2888/TCP,3888/TCP   4m34s
+NAME                                         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+ephemeral-cluster-kafka-bootstrap            ClusterIP   10.97.202.251    <none>        9091/TCP                     2m17s
+ephemeral-cluster-kafka-brokers              ClusterIP   None             <none>        9090/TCP,9091/TCP            2m17s
+ephemeral-cluster-kafka-external-0           NodePort    10.105.169.210   <none>        9092:32000/TCP               2m17s
+ephemeral-cluster-kafka-external-bootstrap   NodePort    10.105.143.149   <none>        9092:32100/TCP               2m17s
+ephemeral-cluster-zookeeper-client           ClusterIP   10.110.6.20      <none>        2181/TCP                     2m41s
+ephemeral-cluster-zookeeper-nodes            ClusterIP   None             <none>        2181/TCP,2888/TCP,3888/TCP   2m41s
 ```
 
-4. Create kafka topics:
+5. Create kafka topics:
 ```sh
 $ kubectl apply -f kafka-topics.yaml
+kafkatopic.kafka.strimzi.io/mnist-rest-input created
+kafkatopic.kafka.strimzi.io/mnist-rest-output created
 ```
 
-5. Deploy another mnist model with kafka:
+6. Deploy another mnist model with kafka:
+
+Note that the seldon model can't connect to the kafka broker because the iptables of istio proxy. We should remove proxy first.
+
+```sh
+# Show labels for seldon-model namespace
+$ kubectl get ns seldon-model --show-labels 
+NAME           STATUS   AGE     LABELS
+seldon-model   Active   7d13h   istio-injection=enabled,kubernetes.io/metadata.name=seldon-model
+
+# Remove istio-injection label
+$ kubectl label ns seldon-model istio-injection-
+namespace/seldon-model unlabeled
+
+# Recheck
+$ kubectl get ns seldon-model --show-labels
+NAME           STATUS   AGE     LABELS
+seldon-model   Active   7d13h   kubernetes.io/metadata.name=seldon-model
+```
+
+Now we will deploy a model can read real time data:
+
 ```sh
 $ kubectl apply -f mnist_kafka.yml
 ```
-Note that the address of KAFKA_BROKER in the manifest file can get by the command line: `$(minikube ip):$(kubectl get svc -n kafka my-cluster-kafka-external-0 -o=jsonpath='{.spec.ports[0].nodePort}')`
-```
-$ kubectl get pods -n seldon-model 
-NAME                                                     READY   STATUS    RESTARTS      AGE
-mnist-classifier-default-0-classifier-7b6769bfcd-6wb4j   3/3     Running   12 (8h ago)   25h
-mnist-kafka-default-0-classifier-6cd8445dd7-42cd9        3/3     Running   0             2m19s
+
+Note that the address of KAFKA_BROKER in the manifest file can get by the command line: `kubectl get svc -n kafka ephemeral-cluster-kafka-external-bootstrap -o jsonpath -o=jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}'`
+
+```sh
+$ kubectl get pods -n seldon-model
+NAME                                               READY   STATUS    RESTARTS   AGE
+mnist-kafka-default-0-classifier-f69f8589c-z46zm   2/2     Running   0          65s
 ```
 
 6. Send real time data for stream processing, then check the data processed:
-```
+```sh
+# The bootstrap_servers is 127.0.0.1:32100, where nodeport is 32100 
 $ python3 util/producer.py
+
 $ python3 util/consumer.py
 ```

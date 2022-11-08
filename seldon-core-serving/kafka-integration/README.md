@@ -62,14 +62,14 @@ ephemeral-cluster-zookeeper-client           ClusterIP   10.110.6.20      <none>
 ephemeral-cluster-zookeeper-nodes            ClusterIP   None             <none>        2181/TCP,2888/TCP,3888/TCP   2m41s
 ```
 
-5. Create kafka topics:
+4. Create kafka topics:
 ```sh
 $ kubectl apply -f kafka-topics.yaml
 kafkatopic.kafka.strimzi.io/mnist-rest-input created
 kafkatopic.kafka.strimzi.io/mnist-rest-output created
 ```
 
-6. Deploy another mnist model with kafka:
+5. Deploy another mnist model with kafka:
 
 Note that the seldon model can't connect to the kafka broker because the iptables of istio proxy. We should remove proxy first.
 
@@ -103,10 +103,16 @@ NAME                                               READY   STATUS    RESTARTS   
 mnist-kafka-default-0-classifier-f69f8589c-z46zm   2/2     Running   0          65s
 ```
 
-6. Send real time data for stream processing, then check the data processed:
+7. Send real time data for stream processing, then check the data processed:
 ```sh
 # The bootstrap_servers is 127.0.0.1:32100, where nodeport is 32100 
 $ python3 util/producer.py
 
 $ python3 util/consumer.py
 ```
+
+8. If you use a external kafka (docker, apache, ...)
+- Deploy kafka: `docker-compose up -d`.
+- Update `PLAINTEXT` in `KAFKA_ADVERTISED_LISTENERS` in compose file.
+- Update util/producer.py, util.consumer/py.
+- Testing

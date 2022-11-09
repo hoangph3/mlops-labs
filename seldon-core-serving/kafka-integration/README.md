@@ -107,12 +107,23 @@ mnist-kafka-default-0-classifier-f69f8589c-z46zm   2/2     Running   0          
 ```sh
 # The bootstrap_servers is 127.0.0.1:32100, where nodeport is 32100 
 $ python3 util/producer.py
+50%|████████████████████                    | 30020/60000 [00:32<00:28, 1051.43it/s]
 
 $ python3 util/consumer.py
+{'mnist-rest-input', 'mnist-rest-output'}
+2345it [00:16, 145.44it/s]
 ```
 
 8. If you use a external kafka (docker, apache, ...)
+- Update `PLAINTEXT` in `KAFKA_ADVERTISED_LISTENERS` in `util/docker-compose.yml` file.
 - Deploy kafka: `docker-compose up -d`.
-- Update `PLAINTEXT` in `KAFKA_ADVERTISED_LISTENERS` in compose file.
-- Update util/producer.py, util.consumer/py.
-- Testing
+- Update `bootstrap_servers` in `util/producer.py` and `util/consumer.py`.
+- Testing:
+```sh
+$ python3 util/producer.py
+50%|████████████████████                    | 30020/60000 [00:32<00:28, 1051.43it/s]
+
+$ python3 util/consumer.py
+{'mnist-rest-input', 'mnist-rest-output'}
+2345it [00:16, 145.44it/s]
+```

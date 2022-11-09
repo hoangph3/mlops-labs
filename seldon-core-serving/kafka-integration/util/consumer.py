@@ -1,4 +1,5 @@
 from kafka import KafkaConsumer
+from tqdm import tqdm
 import json
 import time
 
@@ -13,6 +14,5 @@ if __name__ == "__main__":
         value_deserializer=lambda x: json.loads(x.decode('utf-8'))
     )
     print(consumer.topics())
-    for example in consumer:
-        print(example.value)
-        time.sleep(1.0)
+    for example in tqdm(consumer):
+        pass

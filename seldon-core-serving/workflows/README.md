@@ -176,4 +176,4 @@ Save model to /models/sk_mnist.pkl
 
 # Deploying Various MNIST Models on Kubernetes
 
-[Link here!](/seldon-core/workflows/serving.ipynb)
+[Link here!](/seldon-core-serving/workflows/serving.ipynb)

@@ -58,6 +58,7 @@ $ git branch
 $ cd helm-charts/
 
 # Generate the manifests file to deploy seldon-core
+# -> Skipping this step if you haven't installed helm
 $ helm template --output-dir ./yamls  seldon-core-operator/
 wrote ./yamls/seldon-core-operator/templates/serviceaccount_seldon-manager.yaml
 wrote ./yamls/seldon-core-operator/templates/webhook.yaml

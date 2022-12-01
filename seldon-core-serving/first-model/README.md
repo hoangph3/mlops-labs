@@ -35,7 +35,7 @@ class IrisClassifier:
 
 ### Build image
 ```sh
-$ docker build -t sklearn_iris_classifier:0.0.1 .
+$ docker build -t hoangph3/sklearn_iris_classifier:v0.0.1 .
 ```
 
 ### Deploy the model
@@ -59,7 +59,7 @@ spec:
     - spec:
         containers:
         - name: classifier
-          image: sklearn_iris_classifier:0.0.1
+          image: hoangph3/sklearn_iris_classifier:v0.0.1
     graph:
       name: classifier
     name: default
@@ -95,7 +95,7 @@ $ curl -X POST -d @payload.json -H 'Content-Type: application/json' \
    },
    "meta" : {
       "requestPath" : {
-         "classifier" : "sklearn_iris_classifier:0.0.1"
+         "classifier" : "hoangph3/sklearn_iris_classifier:v0.0.1"
       }
    }
 }

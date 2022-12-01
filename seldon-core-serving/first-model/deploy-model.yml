@@ -10,7 +10,7 @@ spec:
     - spec:
         containers:
         - name: classifier
-          image: sklearn_iris_classifier:0.0.1
+          image: hoangph3/sklearn_iris_classifier:v0.0.1
     graph:
       name: classifier
     name: default

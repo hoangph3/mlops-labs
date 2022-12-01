@@ -1,9 +1,11 @@
 apiVersion: machinelearning.seldon.io/v1alpha2
 kind: SeldonDeployment
 metadata:
-  name: "mnist-kafka"
+  name: "mnist-kafka-grpc"
   namespace: seldon-model
 spec:
+  protocol: seldon
+  transport: grpc
   serverType: kafka
   predictors:
   - componentSpecs:
@@ -16,9 +18,9 @@ spec:
       - name: KAFKA_BROKER
         value: 192.168.0.5:9092
       - name: KAFKA_INPUT_TOPIC
-        value: mnist-rest-input
+        value: mnist-grpc-input
       - name: KAFKA_OUTPUT_TOPIC
-        value: mnist-rest-output
+        value: mnist-grpc-output
     graph:
       name: "classifier"
       type: "MODEL"

@@ -1,24 +1,7 @@
 # Serving your Models in a Pipeline
 
 ## Setup environments
-1. Install helm
-```sh
-$ wget https://get.helm.sh/helm-v3.10.0-linux-amd64.tar.gz
-$ tar xvzf helm-v3.10.0-linux-amd64.tar.gz
-$ sudo mv linux-amd64/helm /usr/local/bin/helm
-$ helm
-The Kubernetes package manager
-
-Common actions for Helm:
-
-- helm search:    search for charts
-- helm pull:      download a chart to your local directory to view
-- helm install:   upload the chart to Kubernetes
-- helm list:      list releases of charts
-...
-```
-
-2. Install and setup Istio
+1. Install and setup Istio
 ```sh
 $ wget https://github.com/istio/istio/releases/download/1.12.7/istio-1.12.7-linux-amd64.tar.gz
 
@@ -46,7 +29,7 @@ namespace/seldon-model created
 $ kubectl label namespace seldon-model istio-injection=enabled
 namespace/seldon-model labeled
 
-$ kubectl get ns seldon-model --show-labels 
+$ kubectl get ns seldon-model --show-labels
 NAME           STATUS   AGE   LABELS
 seldon-model   Active   28s   istio-injection=enabled,kubernetes.io/metadata.name=seldon-model
 
@@ -59,28 +42,69 @@ gateway.networking.istio.io/seldon-gateway created
 $ kubectl create namespace seldon-system
 namespace/seldon-system created
 
-$ helm install seldon-core seldon-core-operator \
-    --repo http://storage.googleapis.com/seldon-charts \
-    --set usageMetrics.enabled=true \
-    --set istio.enabled=true \
-    --namespace seldon-system --insecure-skip-tls-verify
-NAME: seldon-core
-LAST DEPLOYED: Mon Oct 24 21:16:49 2022
-NAMESPACE: seldon-system
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
+$ kubectl config set-context --current --namespace=seldon-system
+Context "minikube" modified.
+
+$ kubectl get pods
+No resources found in seldon-system namespace.
+
+$ git clone https://github.com/SeldonIO/seldon-core
+$ cd seldon-core
+$ git checkout v1.14.1
+$ git branch
+* (HEAD detached at v1.14.1)
+  master
+
+$ cd helm-charts/
+
+# Generate the manifests file to deploy seldon-core
+$ helm template --output-dir ./yamls  seldon-core-operator/
+wrote ./yamls/seldon-core-operator/templates/serviceaccount_seldon-manager.yaml
+wrote ./yamls/seldon-core-operator/templates/webhook.yaml
+wrote ./yamls/seldon-core-operator/templates/configmap_seldon-config.yaml
+wrote ./yamls/seldon-core-operator/templates/customresourcedefinition_v1_seldondeployments.machinelearning.seldon.io.yaml
+wrote ./yamls/seldon-core-operator/templates/clusterrole_seldon-manager-role.yaml
+wrote ./yamls/seldon-core-operator/templates/clusterrole_seldon-manager-sas-role.yaml
+wrote ./yamls/seldon-core-operator/templates/clusterrolebinding_seldon-manager-rolebinding.yaml
+wrote ./yamls/seldon-core-operator/templates/clusterrolebinding_seldon-manager-sas-rolebinding.yaml
+wrote ./yamls/seldon-core-operator/templates/role_seldon-leader-election-role.yaml
+wrote ./yamls/seldon-core-operator/templates/rolebinding_seldon-leader-election-rolebinding.yaml
+wrote ./yamls/seldon-core-operator/templates/service_seldon-webhook-service.yaml
+wrote ./yamls/seldon-core-operator/templates/deployment_seldon-controller-manager.yaml
+wrote ./yamls/seldon-core-operator/templates/webhook.yaml
+
+# Update ISTIO_ENABLED=true
+$ nano yamls/seldon-core-operator/templates/deployment_seldon-controller-manager.yaml
+
+# Create the manifests
+$ kubectl create -f yamls/seldon-core-operator/templates/
+clusterrole.rbac.authorization.k8s.io/seldon-manager-role-seldon-system created
+clusterrole.rbac.authorization.k8s.io/seldon-manager-sas-role-seldon-system created
+clusterrolebinding.rbac.authorization.k8s.io/seldon-manager-rolebinding-seldon-system created
+clusterrolebinding.rbac.authorization.k8s.io/seldon-manager-sas-rolebinding-seldon-system created
+configmap/seldon-config created
+customresourcedefinition.apiextensions.k8s.io/seldondeployments.machinelearning.seldon.io created
+deployment.apps/seldon-controller-manager created
+role.rbac.authorization.k8s.io/seldon-leader-election-role created
+rolebinding.rbac.authorization.k8s.io/seldon-leader-election-rolebinding created
+service/seldon-webhook-service created
+serviceaccount/seldon-manager created
+secret/seldon-webhook-server-cert created
+validatingwebhookconfiguration.admissionregistration.k8s.io/seldon-validating-webhook-configuration-seldon-system created
 ```
 
 5. Verify
-```
-$ kubectl get pods -n istio-system 
+```sh
+# set default namespace
+$ kubectl config set-context --current --namespace=default
+Context "minikube" modified.
+
+$ kubectl get pods -n istio-system
 NAME                                    READY   STATUS    RESTARTS   AGE
-istio-egressgateway-5687675b45-h85dl    1/1     Running   0          20m
 istio-ingressgateway-859d74978f-w7wqm   1/1     Running   0          20m
 istiod-64699c7b75-rb9fb                 1/1     Running   0          20m
 
-$ kubectl get pods -n seldon-system 
+$ kubectl get pods -n seldon-system
 NAME                                         READY   STATUS    RESTARTS   AGE
 seldon-controller-manager-59d8b884b4-pgnnj   1/1     Running   0          9s
 ```

@@ -1,6 +1,7 @@
 from kafka import KafkaConsumer
 from seldon_core.proto import prediction_pb2, prediction_pb2_grpc
 from seldon_core import utils
+from google.protobuf.json_format import MessageToJson
 from tqdm import tqdm
 import argparse
 import json
@@ -36,6 +37,8 @@ if __name__ == "__main__":
         )
         print(consumer.topics())
         for example in tqdm(consumer):
-            print(example)
+            pr = prediction_pb2.SeldonMessage()
+            pr.ParseFromString(example.value)
+            print(MessageToJson(pr))
     else:
         raise NotImplementedError

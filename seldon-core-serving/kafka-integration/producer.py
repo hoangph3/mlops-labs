@@ -35,11 +35,13 @@ def gen_grpc_request(data_file="/home/hoang/Downloads/mnist/data/mnist.npz"):
     data = load_mnist_data(data_file)
     producer = KafkaProducer(bootstrap_servers=["192.168.0.5:9092"])
     for example in tqdm(data):
+        example = np.expand_dims(example, 0) #batch
         datadef = utils.array_to_grpc_datadef(data_type='ndarray', array=example)
         request = prediction_pb2.SeldonMessage(data=datadef)
         data_str = request.SerializeToString()
         producer.send("mnist-grpc-input",
-                      value=data_str)
+                      value=data_str,
+                      headers=[('proto-name', b'seldon.protos.Seldon')])
         break
 
 

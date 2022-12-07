@@ -1,0 +1,11 @@
+project: feast_mnist
+provider: local
+registry:
+  registry_type: sql
+  path: postgresql://postgres:mysecretpassword@127.0.0.1:5432/feast
+online_store:
+  type: redis
+  connection_string: localhost:6379
+offline_store:
+  type: file
+entity_key_serialization_version: 2

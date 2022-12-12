@@ -9,6 +9,7 @@ __pycache__/
 # dirs
 artifact-store/
 dataset/
+feast_env/
 
 # Distribution / packaging
 .Python

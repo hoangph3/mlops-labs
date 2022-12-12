@@ -1,10 +1,4 @@
-from feast import (
-    Entity, ValueType
-)
+from feast import Entity
 
 
-event_id = Entity(
-    name="id",
-    value_type=ValueType.INT32,
-    description="The ID of the event"
-)
+label = Entity(name="label_id")

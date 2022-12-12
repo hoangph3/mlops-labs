@@ -1,4 +1,4 @@
-project: feast_mnist
+project: feast_demo_local
 provider: local
 registry:
   registry_type: sql

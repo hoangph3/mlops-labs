@@ -10,6 +10,7 @@ __pycache__/
 artifact-store/
 dataset/
 feast_env/
+feast-postgres-data/
 
 # Distribution / packaging
 .Python

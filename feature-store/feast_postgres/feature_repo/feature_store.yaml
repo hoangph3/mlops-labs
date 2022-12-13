@@ -1,0 +1,17 @@
+project: feast_demo_local
+provider: local
+registry:
+  registry_type: sql
+  path: postgresql://postgres:mysecretpassword@127.0.0.1:5432/feast
+online_store:
+  type: redis
+  connection_string: localhost:6379
+offline_store:
+  type: postgres
+  host: 127.0.0.1
+  port: 5432
+  database: feast
+  db_schema: public
+  user: postgres
+  password: mysecretpassword
+entity_key_serialization_version: 2

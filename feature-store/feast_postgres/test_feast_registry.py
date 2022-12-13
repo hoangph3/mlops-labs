@@ -33,11 +33,14 @@ repo_config = RepoConfig(
 store = FeatureStore(config=repo_config)
 
 # define entity
-entity_df = pd.DataFrame.from_dict({"event_id": [1000, 2000, 3000, 4000, 5000],
-                                    "norm_value": [255, 255, 255, 255, 255]})
+entity_df = pd.DataFrame([{"event_id": i} for i in range(10)])
 entity_df["event_timestamp"] = pd.to_datetime('now', utc=True)
 
 # fetch feature
 feature_v2 = store.get_feature_service("mnist_feature_v2")
 training_data = store.get_historical_features(features=feature_v2, entity_df=entity_df)
 display(training_data.to_df())
+
+entity_rows = [{"event_id": i} for i in range(10)]
+serving_data = store.get_online_features(features=feature_v2, entity_rows=entity_rows)
+display(serving_data.to_df())

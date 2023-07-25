@@ -43,7 +43,6 @@ That is,
 
 ### `settings.json`
 
-
 ```python
 %%writefile settings.json
 {
@@ -85,11 +84,12 @@ That is,
 
 ### Start serving our model
 
-Now that we have our config in-place, we can start the server by running `mlserver start .`. This needs to either be ran from the same directory where our config files are or pointing to the folder where they are.
+Now that we have our config in-place, we can start the server. This needs to either be ran from the same directory where our config files are or pointing to the folder where they are.
 
 ```shell
 mlserver start .
 ```
+
 ```
 2023-07-25 23:05:15,731 [mlserver.parallel] DEBUG - Starting response processing loop...
 2023-07-25 23:05:15,732 [mlserver.rest] INFO - HTTP server running on http://0.0.0.0:9080

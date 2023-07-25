@@ -38,8 +38,8 @@ X_test_agar = X_test_agar.toarray()
 dtrain = xgb.DMatrix(data=X_train, label=y_train)
 
 # specify parameters via map
-param = {'max_depth':2, 'eta':1, 'objective':'binary:logistic' }
-num_round = 2
+param = {'max_depth':1, 'eta':1, 'objective':'binary:logistic' }
+num_round = 1
 bst = xgb.train(param, dtrain, num_round)
 bst
 

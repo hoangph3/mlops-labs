@@ -1,0 +1,4 @@
+{
+    "name": "mnist",
+    "implementation": "serve_model.Mnist"
+}

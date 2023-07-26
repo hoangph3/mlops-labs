@@ -37,7 +37,7 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     tfds.disable_progress_bar()
     train(
-        epochs=5,
+        epochs=20,
         batch_size=128,
         steps_per_epoch=100,
         saved_model_path="./models/latest"

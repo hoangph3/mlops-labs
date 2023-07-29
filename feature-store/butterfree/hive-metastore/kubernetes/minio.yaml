@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  labels:
+    app: minio
+  namespace: spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:RELEASE.2022-12-12T19-27-27Z
+          ports:
+            - containerPort: 9000
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: accesskey
+            - name: MINIO_SECRET_KEY
+              value: secretkey
+          args:
+            - server
+            - /data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: spark
+spec:
+  selector:
+    app: minio
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: minio
+  namespace: spark
+spec:
+  rules:
+    - host: minio.kube1
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: minio
+              servicePort: 9000

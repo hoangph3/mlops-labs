@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metastore
+  labels:
+    app: hive-metastore
+  namespace: spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hive-metastore
+  template:
+    metadata:
+      labels:
+        app: hive-metastore
+    spec:
+      containers:
+        - name: hive-metastore
+          image: hoangph3/hive-metastore:3.0.0
+          ports:
+            - containerPort: 9083
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hive-metastore
+  namespace: spark
+spec:
+  selector:
+    app: hive-metastore
+  ports:
+    - protocol: TCP
+      port: 9083
+      targetPort: 9083
+  type: NodePort

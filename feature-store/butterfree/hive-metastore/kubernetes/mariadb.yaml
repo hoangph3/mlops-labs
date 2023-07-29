@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+  labels:
+    app: mariadb
+  namespace:
+    spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.5
+          ports:
+            - containerPort: 9083
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: admin
+            - name: MYSQL_USER
+              value: admin
+            - name: MYSQL_PASSWORD
+              value: admin
+            - name: MYSQL_DATABASE
+              value: metastore_db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: spark
+spec:
+  selector:
+    app: mariadb
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306

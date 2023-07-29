@@ -1,0 +1,53 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres:14.0
+    container_name: postgres
+    hostname: postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: admin
+      POSTGRES_DB: metastore_db
+
+  hive-metastore-psql:
+    build:
+      context: .
+    image: hoangph3/hive-metastore:3.0.0-psql
+    container_name: hive-metastore-psql
+    hostname: hive-metastore-psql
+    ports:
+    - 9083:9083
+    depends_on:
+      - postgres
+      - minio
+      - minio-bucket
+
+  minio:
+    image: minio/minio:RELEASE.2022-12-12T19-27-27Z
+    container_name: minio
+    hostname: minio
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    ports:
+      - 9000:9000
+      - 9001:9001
+    command: server --console-address ":9001" /data
+
+  minio-bucket:
+    image: minio/mc:RELEASE.2022-12-13T00-23-28Z
+    container_name: minio-bucket
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc rb --force myminio/mybucket;
+      /usr/bin/mc mb myminio/mybucket;
+      /usr/bin/mc anonymous set public myminio/mybucket;
+      exit 0;
+      "

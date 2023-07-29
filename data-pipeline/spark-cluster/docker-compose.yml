@@ -1,0 +1,59 @@
+version: "3"
+
+services:
+  spark-master:
+    image: hoangph3/spark-cluster:3.2.0
+    container_name: spark-master
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    volumes:
+      - ./examples:/opt/spark/examples
+    environment:
+      - SPARK_LOCAL_IP=spark-master
+      - SPARK_WORKLOAD=master
+  spark-worker-1:
+    image: hoangph3/spark-cluster:3.2.0
+    container_name: spark-worker-1
+    ports:
+      - "9091:8080"
+      - "7000:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-1
+    volumes:
+      - ./examples:/opt/spark/examples
+  spark-worker-2:
+    image: hoangph3/spark-cluster:3.2.0
+    container_name: spark-worker-2
+    ports:
+      - "9092:8080"
+      - "7001:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-2
+    volumes:
+      - ./examples:/opt/spark/examples
+  my-postgres:
+    image: postgres:14.0
+    container_name: my-postgres
+    ports: 
+      - "5432:5432"
+    environment: 
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=my_db

@@ -1,4 +1,7 @@
 {
     "name": "mnist",
-    "implementation": "serve_model.Mnist"
+    "implementation": "serve_model.Mnist",
+    "parameters": {
+        "environment_tarball": "/mnt/models/faiss.tar.gz"
+    }
 }

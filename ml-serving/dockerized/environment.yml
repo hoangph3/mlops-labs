@@ -1,0 +1,7 @@
+name: faiss
+channels:
+    - conda-forge
+dependencies:
+    - python == 3.8
+    - faiss-cpu
+    - pip

@@ -1,8 +1,8 @@
 from mlserver import MLModel
 from mlserver.codecs import decode_args
 import numpy as np
-import faiss
 import tensorflow as tf
+import faiss
 
 
 # Define a class for our Model, inheriting the MLModel class from MLServer
@@ -12,6 +12,7 @@ class Mnist(MLModel):
         self._model = tf.keras.models.load_model("/mnt/models/latest")
         self._model.summary()
         self.ready = True
+        print("Load faiss: {}".format(faiss.__version__))
         return self.ready
 
     # Logic for making predictions against our model
